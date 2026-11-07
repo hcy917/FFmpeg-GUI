@@ -142,7 +142,7 @@ class MainViewModel(
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 8)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
-    val ffmpegVersion: String = runCatching { engine.version() }.getOrDefault("unknown")
+    val ffmpegVersion: String = runCatching { engine.version() }.getOrDefault("未知")
     val pythonVersion: String = "Python 3.11"
 
     private val chatFile = File(workspace.root, "chat/history.json")
@@ -158,10 +158,10 @@ class MainViewModel(
         viewModelScope.launch {
             taskRunner.completed.collectLatest { task ->
                 if (task.status == TaskStatus.COMPLETED) {
-                    _events.emit("${task.title} completed")
+                    _events.emit("${task.title} 已完成")
                     syncOutputs()
                 } else if (task.status == TaskStatus.FAILED) {
-                    _events.emit("${task.title} failed")
+                    _events.emit("${task.title} 失败")
                 }
                 refreshStats()
             }
@@ -171,15 +171,15 @@ class MainViewModel(
     fun importUris(uris: List<android.net.Uri>) {
         if (uris.isEmpty()) return
         viewModelScope.launch {
-            _importState.value = ImportUiState(active = true, label = "Copying ${uris.size} file(s)…")
+            _importState.value = ImportUiState(active = true, label = "正在复制 ${uris.size} 个文件…")
             val files = mutableListOf<File>()
             uris.forEachIndexed { index, uri ->
-                _importState.value = ImportUiState(active = true, label = "Importing ${index + 1}/${uris.size}…", copied = files.size)
+                _importState.value = ImportUiState(active = true, label = "正在导入 ${index + 1}/${uris.size}…", copied = files.size)
                 workspace.importUri(uri)?.let { files += it }
             }
             val added = mediaRepository.addFiles(files, source = "import")
             _importState.value = ImportUiState()
-            _events.emit(if (added.isEmpty()) "Nothing imported" else "Imported ${added.size} file(s)")
+            _events.emit(if (added.isEmpty()) "没有导入任何文件" else "已导入 ${added.size} 个文件")
             refreshStats()
             syncOutputs()
         }
@@ -187,13 +187,13 @@ class MainViewModel(
 
     fun importTree(uri: android.net.Uri) {
         viewModelScope.launch {
-            _importState.value = ImportUiState(active = true, label = "Scanning folder…")
+            _importState.value = ImportUiState(active = true, label = "正在扫描文件夹…")
             val files = workspace.importTree(uri) { message ->
                 _importState.value = _importState.value.copy(label = message, copied = _importState.value.copied + 1)
             }
             val added = mediaRepository.addFiles(files, source = "folder")
             _importState.value = ImportUiState()
-            _events.emit(if (added.isEmpty()) "No media found in folder" else "Imported ${added.size} file(s) from folder")
+            _events.emit(if (added.isEmpty()) "文件夹中没有找到媒体" else "已从文件夹导入 ${added.size} 个文件")
             refreshStats()
         }
     }
@@ -202,7 +202,7 @@ class MainViewModel(
         if (items.isEmpty()) return
         viewModelScope.launch {
             mediaRepository.remove(items.map { it.id }.toSet(), deleteFiles)
-            _events.emit("Removed ${items.size} item(s)")
+            _events.emit("已移除 ${items.size} 个媒体")
             refreshStats()
         }
     }
@@ -216,12 +216,12 @@ class MainViewModel(
                 "${item.name.substringBeforeLast('.')}_${preset.id}.${preset.extension}",
             )
             val command = runCatching { CommandBuilder.convert(item, output, preset) }.getOrElse {
-                _events.tryEmit("Could not build command: ${it.message}")
+                _events.tryEmit("无法生成命令：${it.message}")
                 return@forEach
             }
             taskRunner.enqueue(
                 QueuedCommand(
-                    title = "Convert ${item.name}",
+                    title = "转换 ${item.name}",
                     subtitle = preset.title,
                     command = command,
                     expectedOutputs = listOf(output),
@@ -229,29 +229,29 @@ class MainViewModel(
                 )
             )
         }
-        _events.tryEmit("Queued ${items.size} conversion task(s)")
+        _events.tryEmit("已加入 ${items.size} 个转换任务")
     }
 
     fun merge(items: List<MediaItem>, options: MergeOptions) {
         if (items.size < 2) {
-            _events.tryEmit("Select at least two items to merge")
+            _events.tryEmit("至少选择两个媒体进行合并")
             return
         }
         val output = workspace.uniqueFile(workspace.outputs, CommandBuilder.mergeOutputName(items, options.container))
         val command = runCatching { CommandBuilder.merge(items, options, output) }.getOrElse {
-            _events.tryEmit("Could not build merge: ${it.message}")
+            _events.tryEmit("无法生成合并命令：${it.message}")
             return
         }
         taskRunner.enqueue(
             QueuedCommand(
-                title = "Merge ${items.size} items",
+                title = "合并 ${items.size} 个媒体",
                 subtitle = "→ ${output.name}",
                 command = command,
                 expectedOutputs = listOf(output),
                 totalDurationMs = items.sumOf { it.durationMs },
             )
         )
-        _events.tryEmit("Merge queued")
+        _events.tryEmit("合并任务已加入队列")
     }
 
     fun split(items: List<MediaItem>, options: SplitOptions) {
@@ -259,20 +259,20 @@ class MainViewModel(
         items.forEach { item ->
             val dir = workspace.ensureOutputDir(CommandBuilder.splitOutputName(item))
             val command = runCatching { CommandBuilder.split(item, options, dir) }.getOrElse {
-                _events.tryEmit("Could not build split: ${it.message}")
+                _events.tryEmit("无法生成拆分命令：${it.message}")
                 return@forEach
             }
             taskRunner.enqueue(
                 QueuedCommand(
-                    title = "Split ${item.name}",
-                    subtitle = "${options.outputFormat.uppercase()} segments",
+                    title = "拆分 ${item.name}",
+                    subtitle = "${options.outputFormat.uppercase()} 分段",
                     command = command,
                     outputDirectory = dir,
                     totalDurationMs = item.durationMs,
                 )
             )
         }
-        _events.tryEmit("Queued ${items.size} split task(s)")
+        _events.tryEmit("已加入 ${items.size} 个拆分任务")
     }
 
     fun runConsole(commandText: String) {
@@ -285,7 +285,7 @@ class MainViewModel(
         val command = if (processed.startsWith("ffmpeg")) processed else "ffmpeg $processed"
         taskRunner.enqueue(
             QueuedCommand(
-                title = "FFmpeg console",
+                title = "FFmpeg 控制台",
                 subtitle = command.take(90),
                 command = command,
                 addOutputsToLibrary = false,
@@ -302,8 +302,8 @@ class MainViewModel(
         val audio = workspace.uniqueFile(workspace.inbox, "ffmpeg_tone_${System.currentTimeMillis() % 100000}.m4a")
         taskRunner.enqueue(
             QueuedCommand(
-                title = "Create demo clip",
-                subtitle = "Testsrc2 + 440 Hz tone",
+                title = "生成演示片段",
+                subtitle = "测试画面 + 440 Hz 音调",
                 command = "ffmpeg -hide_banner -y -f lavfi -i testsrc2=size=1280x720:rate=30:duration=5 " +
                     "-f lavfi -i sine=frequency=440:sample_rate=48000:duration=5 " +
                     "-c:v libx264 -preset veryfast -crf 23 -pix_fmt yuv420p -c:a aac -b:a 160k -shortest ${CommandBuilder.quote(video.absolutePath)}",
@@ -313,15 +313,15 @@ class MainViewModel(
         )
         taskRunner.enqueue(
             QueuedCommand(
-                title = "Create demo audio",
-                subtitle = "3-second 660 Hz tone",
+                title = "生成演示音频",
+                subtitle = "3 秒 660 Hz 音调",
                 command = "ffmpeg -hide_banner -y -f lavfi -i sine=frequency=660:sample_rate=48000:duration=3 " +
                     "-c:a aac -b:a 192k ${CommandBuilder.quote(audio.absolutePath)}",
                 expectedOutputs = listOf(audio),
                 totalDurationMs = 3000,
             )
         )
-        _events.tryEmit("Generating demo media…")
+        _events.tryEmit("正在生成演示媒体…")
     }
 
     fun syncOutputs() {
@@ -367,8 +367,8 @@ class MainViewModel(
     fun runPython(relativePath: String, args: String) {
         if (_pythonState.value.running) return
         viewModelScope.launch {
-            _pythonState.value = PythonUiState(running = true, script = relativePath, logs = "Starting Python…\n")
-            val builder = StringBuilder("Starting Python…\n")
+            _pythonState.value = PythonUiState(running = true, script = relativePath, logs = "正在启动 Python…\n")
+            val builder = StringBuilder("正在启动 Python…\n")
             val result = pythonRunner.runScript(relativePath, args) { line ->
                 synchronized(builder) {
                     builder.append(line).append('\n')
@@ -386,7 +386,7 @@ class MainViewModel(
             )
             refreshPython()
             syncOutputs()
-            _events.tryEmit(if (result.success) "Python script finished" else "Python script failed")
+            _events.tryEmit(if (result.success) "Python 脚本运行完成" else "Python 脚本运行失败")
         }
     }
 
@@ -410,7 +410,7 @@ class MainViewModel(
         viewModelScope.launch {
             val deleted = withContext(Dispatchers.IO) { pythonRunner.deleteLibrary(name) }
             refreshPython()
-            _events.tryEmit(if (deleted) "Removed $name" else "Could not remove $name")
+            _events.tryEmit(if (deleted) "已删除 $name" else "无法删除 $name")
         }
     }
 
@@ -418,7 +418,7 @@ class MainViewModel(
         viewModelScope.launch {
             val file = withContext(Dispatchers.IO) { pythonRunner.saveScript(name, content) }
             refreshPython()
-            _events.tryEmit("Saved ${file.name}")
+            _events.tryEmit("已保存 ${file.name}")
         }
     }
 
@@ -426,7 +426,7 @@ class MainViewModel(
         viewModelScope.launch {
             val deleted = withContext(Dispatchers.IO) { pythonRunner.deleteScript(relativePath) }
             refreshPython()
-            _events.tryEmit(if (deleted) "Script deleted" else "Could not delete script")
+            _events.tryEmit(if (deleted) "脚本已删除" else "无法删除脚本")
         }
     }
 
@@ -461,13 +461,13 @@ class MainViewModel(
                 _messages.value = _messages.value + ChatMessage(
                     id = UUID.randomUUID().toString(),
                     role = "assistant",
-                    content = turn.assistant.ifBlank { "Done." },
+                    content = turn.assistant.ifBlank { "完成。" },
                 )
             } catch (t: Throwable) {
                 _messages.value = _messages.value + ChatMessage(
                     id = UUID.randomUUID().toString(),
                     role = "assistant",
-                    content = "Something went wrong: ${t.message ?: t::class.java.simpleName}",
+                    content = "出现错误：${t.message ?: t::class.java.simpleName}",
                     isError = true,
                 )
             } finally {
@@ -486,7 +486,7 @@ class MainViewModel(
 
     fun saveAiSettings(ai: AiSettings) {
         settingsRepository.updateAi(ai)
-        _events.tryEmit("AI settings saved")
+        _events.tryEmit("AI 设置已保存")
     }
 
     fun setTheme(themeMode: String) {

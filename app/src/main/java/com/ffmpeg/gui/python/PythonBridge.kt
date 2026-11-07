@@ -47,39 +47,39 @@ object PythonBridge {
 
     @JvmStatic
     fun listFiles(relative: String = ""): String {
-        val ws = workspace ?: return "workspace unavailable"
+        val ws = workspace ?: return "工作区不可用"
         val entries = ws.listTree(relative, limit = 500)
-        if (entries.isEmpty()) return "(empty)"
+        if (entries.isEmpty()) return "（空）"
         return entries.joinToString("\n") { entry ->
-            if (entry.isDirectory) "[dir] ${entry.relativePath}/ (${entry.childCount} items)"
-            else "[file] ${entry.relativePath} (${entry.sizeBytes} bytes)"
+            if (entry.isDirectory) "[目录] ${entry.relativePath}/（${entry.childCount} 项）"
+            else "[文件] ${entry.relativePath}（${entry.sizeBytes} 字节）"
         }
     }
 
     @JvmStatic
     fun readText(relative: String): String {
         val ws = workspace ?: return ""
-        val file = ws.resolve(relative) ?: return "Path is outside the workspace"
-        if (!file.isFile) return "Not a file: $relative"
-        if (file.length() > 1_000_000) return "File is too large to read as text (${file.length()} bytes)"
+        val file = ws.resolve(relative) ?: return "路径不在工作区内"
+        if (!file.isFile) return "不是文件：$relative"
+        if (file.length() > 1_000_000) return "文件过大，无法作为文本读取（${file.length()} 字节）"
         return file.readText()
     }
 
     @JvmStatic
     fun writeText(relative: String, content: String): String {
-        val ws = workspace ?: return "workspace unavailable"
-        val file = ws.writeTextFile(relative, content) ?: return "Path is outside the workspace"
+        val ws = workspace ?: return "工作区不可用"
+        val file = ws.writeTextFile(relative, content) ?: return "路径不在工作区内"
         return "Wrote ${file.absolutePath} (${content.length} chars)"
     }
 
     @JvmStatic
     fun runFfmpeg(args: String): String {
-        val eng = engine ?: return "FFmpeg engine unavailable"
+        val eng = engine ?: return "FFmpeg 引擎不可用"
         emit("▶ ffmpeg $args")
         return try {
             val output = eng.runBlocking(args) { line -> if (line.isNotBlank()) emit(line) }
             val success = !output.contains("Conversion failed") && !output.contains("Error")
-            emit(if (success) "✓ FFmpeg finished" else "✗ FFmpeg command may have failed")
+            emit(if (success) "✓ FFmpeg 运行完成" else "✗ FFmpeg 命令可能失败")
             output
         } catch (t: Throwable) {
             emit("✗ ${t.message}")
@@ -89,16 +89,16 @@ object PythonBridge {
 
     @JvmStatic
     fun probe(relative: String): String {
-        val ws = workspace ?: return "workspace unavailable"
-        val file = ws.resolve(relative) ?: return "Path is outside the workspace"
-        if (!file.isFile) return "Not a file: $relative"
+        val ws = workspace ?: return "工作区不可用"
+        val file = ws.resolve(relative) ?: return "路径不在工作区内"
+        if (!file.isFile) return "不是文件：$relative"
         return runBlocking {
             val info = MediaProbe.probe(file)
             buildString {
                 appendLine("file: ${file.name}")
-                appendLine("format: ${info.format}")
-                appendLine("duration_ms: ${info.durationMs}")
-                appendLine("size_bytes: ${info.sizeBytes}")
+                appendLine("封装：${info.format}")
+                appendLine("时长毫秒：${info.durationMs}")
+                appendLine("大小字节：${info.sizeBytes}")
                 info.streams.forEachIndexed { index, stream ->
                     appendLine("stream[$index]: ${stream.type} codec=${stream.codec} ${stream.width}x${stream.height} sample_rate=${stream.sampleRate}")
                 }
@@ -115,7 +115,7 @@ object PythonBridge {
     @JvmStatic
     fun refreshLibrary(): String {
         runBlocking { mediaRepository?.refresh() }
-        return "Library refreshed"
+        return "媒体库已刷新"
     }
 }
 

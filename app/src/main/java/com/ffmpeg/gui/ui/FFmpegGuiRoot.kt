@@ -97,12 +97,12 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 enum class AppScreen(val label: String, val icon: ImageVector) {
-    Studio("Studio", Icons.Rounded.Home),
-    Convert("Convert", Icons.Rounded.SwapHoriz),
-    Merge("Merge", Icons.Rounded.CallMerge),
-    Split("Split", Icons.Rounded.ContentCut),
-    Lab("Lab", Icons.Rounded.Science),
-    Settings("Settings", Icons.Rounded.Settings),
+    Studio("工作台", Icons.Rounded.Home),
+    Convert("转换", Icons.Rounded.SwapHoriz),
+    Merge("合并", Icons.Rounded.CallMerge),
+    Split("拆分", Icons.Rounded.ContentCut),
+    Lab("实验室", Icons.Rounded.Science),
+    Settings("设置", Icons.Rounded.Settings),
 }
 
 private val bottomScreens = listOf(AppScreen.Studio, AppScreen.Convert, AppScreen.Merge, AppScreen.Split, AppScreen.Lab)
@@ -165,7 +165,7 @@ fun FFmpegGuiRoot(viewModel: MainViewModel) {
                     navigationIcon = {
                         if (screen == AppScreen.Settings) {
                             IconButton(onClick = { screenName = AppScreen.Studio.name }) {
-                                Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                                Icon(Icons.Rounded.ArrowBack, contentDescription = "返回")
                             }
                         } else {
                             Box(Modifier.padding(start = 16.dp, end = 4.dp)) {
@@ -207,14 +207,14 @@ fun FFmpegGuiRoot(viewModel: MainViewModel) {
                         } else if (queuedCount > 0) {
                             Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.tertiaryContainer) {
                                 Text(
-                                    "$queuedCount queued",
+                                    "${queuedCount} 个排队",
                                     style = MaterialTheme.typography.labelSmall,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 )
                             }
                         }
                         IconButton(onClick = { screenName = AppScreen.Settings.name }) {
-                            Icon(Icons.Rounded.Settings, contentDescription = "Settings")
+                            Icon(Icons.Rounded.Settings, contentDescription = "设置")
                         }
                     },
                 )
@@ -379,7 +379,7 @@ private fun ImportingBanner(label: String, copied: Int, modifier: Modifier = Mod
             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
             Spacer(Modifier.width(10.dp))
             Text(
-                "$label${if (copied > 0) " · $copied copied" else ""}",
+                "$label${if (copied > 0) " · 已复制 $copied 个" else ""}",
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.weight(1f),
                 maxLines = 1,
@@ -412,11 +412,11 @@ fun TaskDetailSheet(
                 Spacer(Modifier.width(10.dp))
                 Text(
                     when (task.status) {
-                        TaskStatus.RUNNING -> "${(task.progress * 100).toInt()}% complete"
-                        TaskStatus.COMPLETED -> "Finished in ${((task.finishedAt - task.createdAt) / 1000.0)}s"
-                        TaskStatus.FAILED -> "Failed"
-                        TaskStatus.CANCELLED -> "Cancelled"
-                        TaskStatus.QUEUED -> "Waiting in queue"
+                        TaskStatus.RUNNING -> "${(task.progress * 100).toInt()}% 完成"
+                        TaskStatus.COMPLETED -> "用时 ${"%.1f".format((task.finishedAt - task.createdAt) / 1000.0)} 秒"
+                        TaskStatus.FAILED -> "失败"
+                        TaskStatus.CANCELLED -> "已取消"
+                        TaskStatus.QUEUED -> "排队等待"
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -428,7 +428,7 @@ fun TaskDetailSheet(
             }
             if (task.outputPaths.isNotEmpty()) {
                 Spacer(Modifier.height(18.dp))
-                Text("Outputs", style = MaterialTheme.typography.titleMedium)
+                Text("输出文件", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
                 task.outputPaths.forEach { path ->
                     val file = File(path)
@@ -442,20 +442,20 @@ fun TaskDetailSheet(
                                 Text(file.name, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 Text(formatBytes(file.length()), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            TextButton(onClick = { shareFile(context, file) }) { Text("Share") }
+                            TextButton(onClick = { shareFile(context, file) }) { Text("分享") }
                         }
                     }
                 }
             }
             Spacer(Modifier.height(18.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Command", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                Text("命令", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
                 IconButton(onClick = {
                     val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("FFmpeg command", task.command))
-                    Toast.makeText(context, "Command copied", Toast.LENGTH_SHORT).show()
+                    clipboard.setPrimaryClip(ClipData.newPlainText("FFmpeg 命令", task.command))
+                    Toast.makeText(context, "命令已复制", Toast.LENGTH_SHORT).show()
                 }) {
-                    Icon(Icons.Rounded.ContentCopy, contentDescription = "Copy command")
+                    Icon(Icons.Rounded.ContentCopy, contentDescription = "复制命令")
                 }
             }
             Surface(
@@ -481,7 +481,7 @@ fun TaskDetailSheet(
                 }
             }
             Spacer(Modifier.height(18.dp))
-            Text("Log", style = MaterialTheme.typography.titleMedium)
+            Text("日志", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(6.dp))
             Surface(
                 shape = RoundedCornerShape(16.dp),
@@ -489,7 +489,7 @@ fun TaskDetailSheet(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(
-                    task.logs.ifBlank { "No log output yet." },
+                    task.logs.ifBlank { "暂无日志输出。" },
                     modifier = Modifier.padding(12.dp).height(280.dp).verticalScroll(rememberScrollState()),
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp, lineHeight = 16.sp),
                     fontFamily = FontFamily.Monospace,
@@ -498,13 +498,13 @@ fun TaskDetailSheet(
             Spacer(Modifier.height(18.dp))
             Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
                 if (task.status == TaskStatus.RUNNING || task.status == TaskStatus.QUEUED) {
-                    TextButton(onClick = onCancel) { Text("Cancel task") }
+                    TextButton(onClick = onCancel) { Text("取消任务") }
                 }
                 if (task.status != TaskStatus.RUNNING) {
-                    TextButton(onClick = onDismissTask) { Text("Dismiss") }
+                    TextButton(onClick = onDismissTask) { Text("关闭") }
                 }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onDismiss) { Text("Close") }
+                TextButton(onClick = onDismiss) { Text("关闭") }
             }
         }
     }
@@ -513,11 +513,11 @@ fun TaskDetailSheet(
 @Composable
 fun TaskStatusPill(status: TaskStatus) {
     val label = when (status) {
-        TaskStatus.QUEUED -> "QUEUED"
-        TaskStatus.RUNNING -> "RUNNING"
-        TaskStatus.COMPLETED -> "DONE"
-        TaskStatus.FAILED -> "FAILED"
-        TaskStatus.CANCELLED -> "CANCELLED"
+        TaskStatus.QUEUED -> "排队中"
+        TaskStatus.RUNNING -> "运行中"
+        TaskStatus.COMPLETED -> "完成"
+        TaskStatus.FAILED -> "失败"
+        TaskStatus.CANCELLED -> "已取消"
     }
     val color = when (status) {
         TaskStatus.COMPLETED -> MaterialTheme.colorScheme.primaryContainer
@@ -547,7 +547,7 @@ fun TaskStatusPill(status: TaskStatus) {
 
 fun shareFile(context: Context, file: File) {
     if (!file.isFile) {
-        Toast.makeText(context, "File is not available", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "文件不可用", Toast.LENGTH_SHORT).show()
         return
     }
     runCatching {
@@ -557,8 +557,8 @@ fun shareFile(context: Context, file: File) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Share ${file.name}"))
+        context.startActivity(Intent.createChooser(intent, "分享 ${file.name}"))
     }.onFailure {
-        Toast.makeText(context, "Could not share file: ${it.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "无法分享文件：${it.message}", Toast.LENGTH_SHORT).show()
     }
 }

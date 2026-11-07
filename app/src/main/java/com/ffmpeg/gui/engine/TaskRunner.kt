@@ -73,7 +73,7 @@ class TaskRunner(
         when (record.status) {
             TaskStatus.QUEUED -> {
                 cancelledQueued.add(id)
-                update(id) { it.copy(status = TaskStatus.CANCELLED, finishedAt = System.currentTimeMillis(), error = "Cancelled while queued") }
+                update(id) { it.copy(status = TaskStatus.CANCELLED, finishedAt = System.currentTimeMillis(), error = "排队时已取消") }
             }
             TaskStatus.RUNNING -> {
                 if (activeId == id) engine.cancelCurrent()
@@ -123,7 +123,7 @@ class TaskRunner(
                 },
             )
         } catch (t: Throwable) {
-            FFmpegResult(false, false, -1, "", t.message ?: "Unknown FFmpeg error")
+            FFmpegResult(false, false, -1, "", t.message ?: "未知 FFmpeg 错误")
         }
 
         val finishedAt = System.currentTimeMillis()
@@ -132,7 +132,7 @@ class TaskRunner(
             if (request.addOutputsToLibrary && outputs.isNotEmpty()) {
                 mediaRepository.addFiles(outputs, isOutput = true, source = "ffmpeg")
             }
-            synchronized(logBuffer) { logBuffer.append("\n✓ Finished in ${"%.1f".format(result.elapsedMs / 1000.0)}s") }
+            synchronized(logBuffer) { logBuffer.append("\n✓ 用时 ${"%.1f".format(result.elapsedMs / 1000.0)} 秒") }
             update(id) {
                 it.copy(
                     status = TaskStatus.COMPLETED,
@@ -152,7 +152,7 @@ class TaskRunner(
                     status = if (cancelled) TaskStatus.CANCELLED else TaskStatus.FAILED,
                     progress = 0f,
                     logs = logBuffer.toString(),
-                    error = if (cancelled) "Cancelled" else detail.ifBlank { "FFmpeg exited with code ${result.returnCode}" },
+                    error = if (cancelled) "已取消" else detail.ifBlank { "FFmpeg 退出码：${result.returnCode}" },
                     finishedAt = finishedAt,
                 )
             }

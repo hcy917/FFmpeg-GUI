@@ -23,17 +23,18 @@ class AiAgent(
             role = "system",
             content = buildString {
                 appendLine(settings.systemPrompt)
+                appendLine("请始终使用简体中文回答用户。")
                 appendLine()
-                appendLine("Workspace root (absolute): ${workspace.root.absolutePath}")
-                appendLine("Outputs directory: ${workspace.outputs.absolutePath}")
-                appendLine("Python scripts: ${workspace.pythonDir.absolutePath}")
-                appendLine("Imported files: ${workspace.inbox.absolutePath}")
-                appendLine("Use workspace_list to inspect files. FFmpeg and Python tools are available.")
-                appendLine("When using ffmpeg_run, write outputs under the outputs directory and use absolute paths.")
+                appendLine("工作区根目录（绝对路径）：${workspace.root.absolutePath}")
+                appendLine("输出目录：${workspace.outputs.absolutePath}")
+                appendLine("Python 脚本目录：${workspace.pythonDir.absolutePath}")
+                appendLine("导入文件目录：${workspace.inbox.absolutePath}")
+                appendLine("使用 workspace_list 查看文件；FFmpeg 与 Python 工具均可调用。")
+                appendLine("调用 ffmpeg_run 时，把输出写入 outputs 目录，并使用绝对路径。")
                 appendLine()
-                appendLine("Workspace snapshot:")
+                appendLine("工作区快照：")
                 workspace.listTree(limit = 80).take(60).forEach { entry ->
-                    appendLine(if (entry.isDirectory) "[dir] ${entry.relativePath}" else "[file] ${entry.relativePath}")
+                    appendLine(if (entry.isDirectory) "[目录] ${entry.relativePath}" else "[文件] ${entry.relativePath}")
                 }
             },
         )
@@ -50,7 +51,7 @@ class AiAgent(
             if (completion.content.isNotBlank()) lastContent = completion.content
             if (completion.toolCalls.isEmpty()) {
                 return ChatTurn(
-                    assistant = completion.content.ifBlank { lastContent.ifBlank { "Done." } },
+                    assistant = completion.content.ifBlank { lastContent.ifBlank { "完成。" } },
                     traces = traces,
                 )
             }
@@ -70,7 +71,7 @@ class AiAgent(
             }
         }
         return ChatTurn(
-            assistant = lastContent.ifBlank { "I reached the tool-iteration limit. Check the tool traces for details." },
+            assistant = lastContent.ifBlank { "已达到工具迭代上限，请查看工具调用记录了解详情。" },
             traces = traces,
         )
     }

@@ -26,57 +26,57 @@ class AiToolExecutor(
     val specs: List<ToolSpec> = listOf(
         tool(
             "workspace_list",
-            "List files and folders in the app workspace. Use this before acting on files.",
+            "列出应用工作区中的文件和文件夹。操作文件前先使用此工具。",
             buildJsonObject {
                 putJsonObject("properties") {
-                    putJsonObject("path") { put("type", "string"); put("description", "Relative folder path, empty for workspace root") }
+                    putJsonObject("path") { put("type", "string"); put("description", "相对文件夹路径；留空表示工作区根目录") }
                 }
             },
         ),
         tool(
             "workspace_read",
-            "Read a UTF-8 text or JSON file from the workspace.",
+            "读取工作区中的 UTF-8 文本或 JSON 文件。",
             buildJsonObject {
                 putJsonObject("properties") {
-                    putJsonObject("path") { put("type", "string"); put("description", "Relative file path") }
+                    putJsonObject("path") { put("type", "string"); put("description", "相对文件路径") }
                 }
                 putJsonArray("required") { add(kotlinx.serialization.json.JsonPrimitive("path")) }
             },
         ),
         tool(
             "workspace_write",
-            "Create or replace a text file in the workspace. Parent folders are created automatically.",
+            "在工作区创建或覆盖文本文件，自动创建父文件夹。",
             buildJsonObject {
                 putJsonObject("properties") {
-                    putJsonObject("path") { put("type", "string"); put("description", "Relative file path") }
-                    putJsonObject("content") { put("type", "string"); put("description", "Full file content") }
+                    putJsonObject("path") { put("type", "string"); put("description", "相对文件路径") }
+                    putJsonObject("content") { put("type", "string"); put("description", "完整文件内容") }
                 }
                 putJsonArray("required") { add(kotlinx.serialization.json.JsonPrimitive("path")); add(kotlinx.serialization.json.JsonPrimitive("content")) }
             },
         ),
         tool(
             "media_library",
-            "Return all imported and generated media in the library with kind, duration, resolution, and absolute path.",
+            "返回媒体库中全部导入和生成的媒体，包括类型、时长、分辨率和绝对路径。",
             buildJsonObject { putJsonObject("properties") {} },
         ),
         tool(
             "media_probe",
-            "Probe a media file with FFprobe. Returns format, duration, and streams.",
+            "用 FFprobe 探测媒体文件，返回封装、时长和流信息。",
             buildJsonObject {
                 putJsonObject("properties") {
-                    putJsonObject("path") { put("type", "string"); put("description", "Relative workspace path") }
+                    putJsonObject("path") { put("type", "string"); put("description", "工作区相对路径") }
                 }
                 putJsonArray("required") { add(kotlinx.serialization.json.JsonPrimitive("path")) }
             },
         ),
         tool(
             "ffmpeg_run",
-            "Run FFmpeg with custom arguments. Prefer absolute paths inside the workspace; the workspace root is provided in the system prompt. Always include -y for overwrite. Returns the FFmpeg log tail.",
+            "使用自定义参数运行 FFmpeg。请使用工作区内的绝对路径；系统提示中已给出工作区根目录。覆盖文件时请加入 -y。返回 FFmpeg 日志末尾。",
             buildJsonObject {
                 putJsonObject("properties") {
                     putJsonObject("arguments") {
                         put("type", "string")
-                        put("description", "FFmpeg arguments without the leading 'ffmpeg', e.g. -y -i \"/root/inbox/a.mp4\" -c copy \"/root/outputs/a.mkv\"")
+                        put("description", "不含开头 ffmpeg 的参数，例如 -y -i \"/root/inbox/a.mp4\" -c copy \"/root/outputs/a.mkv\"")
                     }
                 }
                 putJsonArray("required") { add(kotlinx.serialization.json.JsonPrimitive("arguments")) }
@@ -84,18 +84,18 @@ class AiToolExecutor(
         ),
         tool(
             "python_run",
-            "Execute an existing .py script from the workspace with the embedded Python interpreter. Returns its log output.",
+            "使用内置 Python 解释器执行工作区中现有的 .py 脚本，返回日志输出。",
             buildJsonObject {
                 putJsonObject("properties") {
-                    putJsonObject("script") { put("type", "string"); put("description", "Relative script path, e.g. python/examples/smart_report.py") }
-                    putJsonObject("args") { put("type", "string"); put("description", "Optional command-line arguments") }
+                    putJsonObject("script") { put("type", "string"); put("description", "相对脚本路径，例如 python/examples/smart_report.py") }
+                    putJsonObject("args") { put("type", "string"); put("description", "可选的命令行参数") }
                 }
                 putJsonArray("required") { add(kotlinx.serialization.json.JsonPrimitive("script")) }
             },
         ),
         tool(
             "python_list",
-            "List available Python scripts and installed libraries.",
+            "列出可用的 Python 脚本和已安装库。",
             buildJsonObject { putJsonObject("properties") {} },
         ),
     )
@@ -121,10 +121,10 @@ class AiToolExecutor(
                 "ffmpeg_run" -> ffmpegRun(args.string("arguments"))
                 "python_run" -> pythonRun(args.string("script"), args.string("args"))
                 "python_list" -> pythonList()
-                else -> "Unknown tool: $name"
+                else -> "未知工具：$name"
             }
         } catch (t: Throwable) {
-            "ERROR: ${t.message ?: t::class.java.simpleName}"
+            "错误：${t.message ?: t::class.java.simpleName}"
         }
     }
 
@@ -132,30 +132,30 @@ class AiToolExecutor(
         val entries = workspace.listTree(path)
         if (entries.isEmpty()) return "(empty) at ${if (path.isBlank()) "workspace root" else path}"
         return entries.joinToString("\n") {
-            if (it.isDirectory) "[dir] ${it.relativePath} (${it.childCount} entries)"
-            else "[file] ${it.relativePath} (${it.sizeBytes} bytes)"
+            if (it.isDirectory) "[目录] ${it.relativePath}（${it.childCount} 项）"
+            else "[文件] ${it.relativePath}（${it.sizeBytes} 字节）"
         }
     }
 
     private fun workspaceRead(path: String): String {
-        if (path.isBlank()) return "ERROR: path is required"
-        val file = workspace.resolve(path) ?: return "ERROR: path outside workspace"
-        if (!file.isFile) return "ERROR: not a file: $path"
-        if (file.length() > 2_000_000) return "ERROR: file too large (${file.length()} bytes)"
+        if (path.isBlank()) return "错误：必须填写路径"
+        val file = workspace.resolve(path) ?: return "错误：路径不在工作区内"
+        if (!file.isFile) return "错误：不是文件：$path"
+        if (file.length() > 2_000_000) return "错误：文件过大（${file.length()} 字节）"
         return file.readText()
     }
 
     private fun workspaceWrite(path: String, content: String): String {
-        if (path.isBlank()) return "ERROR: path is required"
-        val file = workspace.resolve(path) ?: return "ERROR: path outside workspace"
+        if (path.isBlank()) return "错误：必须填写路径"
+        val file = workspace.resolve(path) ?: return "错误：路径不在工作区内"
         file.parentFile?.mkdirs()
         file.writeText(content)
-        return "Wrote ${workspace.relative(file)} (${content.length} chars)"
+        return "已写入 ${workspace.relative(file)}（${content.length} 字符）"
     }
 
     private fun mediaLibrary(): String {
         val items = mediaRepository.items.value
-        if (items.isEmpty()) return "The media library is empty."
+        if (items.isEmpty()) return "媒体库为空。"
         return items.joinToString("\n") {
             "${it.name} | ${it.kind} | ${it.resolution} | ${it.displayDuration} | ${it.videoCodec}/${it.audioCodec} | ${it.path}"
         }
@@ -163,23 +163,23 @@ class AiToolExecutor(
 
     private suspend fun mediaProbe(path: String): String {
         val file = if (path.startsWith("/")) File(path) else workspace.resolve(path)
-        if (file == null || !file.isFile) return "ERROR: file not found: $path"
-        if (!file.canonicalPath.startsWith(workspace.root.canonicalPath)) return "ERROR: path outside workspace"
+        if (file == null || !file.isFile) return "错误：找不到文件：$path"
+        if (!file.canonicalPath.startsWith(workspace.root.canonicalPath)) return "错误：路径不在工作区内"
         val info = MediaProbe.probe(file)
         return buildString {
-            appendLine("file: ${file.absolutePath}")
-            appendLine("format: ${info.formatLong.ifBlank { info.format }}")
-            appendLine("duration_ms: ${info.durationMs}")
-            appendLine("size_bytes: ${info.sizeBytes}")
+            appendLine("文件：${file.absolutePath}")
+            appendLine("封装：${info.formatLong.ifBlank { info.format }}")
+            appendLine("时长毫秒：${info.durationMs}")
+            appendLine("大小字节：${info.sizeBytes}")
             info.streams.forEach { stream ->
-                appendLine("stream ${stream.index}: ${stream.type}, codec=${stream.codec}, ${stream.width}x${stream.height}, sample_rate=${stream.sampleRate}")
+                appendLine("流 ${stream.index}：${stream.type}，编码=${stream.codec}，${stream.width}x${stream.height}，采样率=${stream.sampleRate}")
             }
         }
     }
 
     private fun ffmpegRun(arguments: String): String {
-        if (arguments.isBlank()) return "ERROR: arguments are required"
-        if (arguments.contains("\u0000")) return "ERROR: invalid arguments"
+        if (arguments.isBlank()) return "错误：必须提供参数"
+        if (arguments.contains("\u0000")) return "错误：参数无效"
         val output = engine.runBlocking(arguments)
         return output.lineSequence()
             .filter { it.isNotBlank() }
@@ -190,7 +190,7 @@ class AiToolExecutor(
     }
 
     private suspend fun pythonRun(script: String, args: String): String {
-        if (script.isBlank()) return "ERROR: script is required"
+        if (script.isBlank()) return "错误：必须提供脚本"
         val logs = StringBuilder()
         val result = pythonRunner.runScript(script, args) { line ->
             synchronized(logs) {
@@ -200,16 +200,16 @@ class AiToolExecutor(
         }
         val tail = logs.toString().takeLast(12_000)
         return if (result.success) {
-            "Python finished in ${result.durationMs} ms.\n$tail\nResult: ${result.result}"
+            "Python 运行完成，用时 ${result.durationMs} 毫秒。\n$tail\n结果：${result.result}"
         } else {
-            "Python failed: ${result.error}\n$tail"
+            "Python 运行失败：${result.error}\n$tail"
         }
     }
 
     private fun pythonList(): String {
         val scripts = pythonRunner.scripts().joinToString("\n") { "  ${workspace.relative(it)}" }
-        val libs = pythonRunner.libraries().joinToString("\n") { "  ${it.name} ${it.version} (${it.kind})" }
-        return "Scripts:\n${scripts.ifBlank { "  (none)" }}\nLibraries:\n${libs.ifBlank { "  (none)" }}"
+        val libs = pythonRunner.libraries().joinToString("\n") { "  ${it.name} ${it.version}（${it.kind}）" }
+        return "脚本：\n${scripts.ifBlank { "  （无）" }}\n库：\n${libs.ifBlank { "  （无）" }}"
     }
 
     private fun JsonObject.string(key: String): String =

@@ -1,18 +1,16 @@
-"""Batch-convert all audio/video files in inbox to a target extension.
+"""把 inbox 中所有音视频批量转换为目标格式。
 
-Usage from FFmpeg GUI: provide args, e.g.  mp4
-The script uses the app's FFmpeg bridge and writes into outputs/python/.
+在 FFmpeg GUI 中运行时传入参数，例如：mp4
+输出写入 outputs/python/。
 """
 import os
-import shlex
 
 import ffmpeg_gui
-
-ROOT = ffmpeg_gui.workspace_root()
 
 MEDIA_EXTS = {".mp4", ".mkv", ".mov", ".avi", ".webm", ".m4v", ".ts", ".3gp",
               ".mp3", ".m4a", ".aac", ".wav", ".flac", ".ogg", ".opus"}
 AUDIO_OUTPUTS = {"mp3", "m4a", "wav", "flac", "opus", "aac"}
+ROOT = ffmpeg_gui.workspace_root()
 
 
 def main(argv):
@@ -20,8 +18,8 @@ def main(argv):
     entries = [e for e in ffmpeg_gui.workspace_entries()
                if not e["is_dir"] and os.path.splitext(e["path"])[1].lower() in MEDIA_EXTS]
     if not entries:
-        print("No source media found.")
-        return "Nothing to do"
+        print("没有找到源媒体文件。")
+        return "没有需要转换的文件"
 
     converted = 0
     out_dir = os.path.join(ROOT, "outputs", "python")
@@ -40,13 +38,13 @@ def main(argv):
                 args = f'-y -i "{source}" -vn -c:a flac "{output}"'
         else:
             args = f'-y -i "{source}" -c:v libx264 -preset medium -crf 23 -c:a aac -b:a 192k "{output}"'
-        print(f"Converting {source} -> {output}")
+        print(f"正在转换 {source} -> {output}")
         ffmpeg_gui.run_ffmpeg(args)
         converted += 1
 
     ffmpeg_gui.refresh_library()
-    print(f"Converted {converted} file(s) to {target}.")
-    return f"Converted {converted} file(s)"
+    print(f"已转换 {converted} 个文件为 {target}。")
+    return f"已转换 {converted} 个文件"
 
 
 if __name__ == "__main__":

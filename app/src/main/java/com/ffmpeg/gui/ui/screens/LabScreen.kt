@@ -85,7 +85,7 @@ import com.ffmpeg.gui.python.PythonLibrary
 import com.ffmpeg.gui.ui.components.PillTabs
 import com.ffmpeg.gui.ui.components.SectionHeader
 
-private val labTabs = listOf("Copilot", "Python", "Libraries", "Console")
+private val labTabs = listOf("智能助手", "Python", "库管理", "控制台")
 
 @Composable
 fun LabScreen(
@@ -118,16 +118,16 @@ fun LabScreen(
     ) {
         Column(Modifier.padding(horizontal = 16.dp)) {
             Text(
-                "WORKBENCH",
+                "工作台",
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.6.sp,
                 color = MaterialTheme.colorScheme.primary,
             )
             Row(verticalAlignment = Alignment.Bottom) {
-                Text("Copilot & code", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
-                if (tab == "Copilot" && messages.isNotEmpty()) {
-                    TextButton(onClick = onClearChat) { Text("Clear") }
+                Text("智能助手与代码", style = MaterialTheme.typography.headlineLarge, modifier = Modifier.weight(1f))
+                if (tab == "智能助手" && messages.isNotEmpty()) {
+                    TextButton(onClick = onClearChat) { Text("清空") }
                 }
             }
             Spacer(Modifier.height(12.dp))
@@ -136,9 +136,9 @@ fun LabScreen(
         }
         Box(Modifier.weight(1f).fillMaxWidth()) {
             when (tab) {
-                "Copilot" -> CopilotTab(messages, busy, aiSettings, onSend, onOpenSettings)
+                "智能助手" -> CopilotTab(messages, busy, aiSettings, onSend, onOpenSettings)
                 "Python" -> PythonTab(pythonState, scripts, onRunPython, onSaveScript, onDeleteScript, onReadScript, onInstallLibrary, onRefreshPython)
-                "Libraries" -> LibrariesTab(pythonLibraries, onInstallLibrary, onDeleteLibrary, onRefreshPython)
+                "库管理" -> LibrariesTab(pythonLibraries, onInstallLibrary, onDeleteLibrary, onRefreshPython)
                 else -> ConsoleTab(tasks, onRunConsole, onOpenTask)
             }
         }
@@ -156,9 +156,9 @@ private fun CopilotTab(
     var input by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
     val suggestions = listOf(
-        "Convert every video in my library to 720p MP4",
-        "Merge my files in order into one MP4",
-        "Write and run a Python report of my workspace",
+        "把媒体库里所有视频转成 720p MP4",
+        "按顺序把我的文件合并成一个 MP4",
+        "写一个 Python 脚本并运行，生成工作区报告",
     )
     LaunchedEffect(messages.size, busy) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size)
@@ -178,7 +178,7 @@ private fun CopilotTab(
             Spacer(Modifier.width(6.dp))
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
                 Text(
-                    if (aiSettings.autoRunTools) "tools auto-run" else "tools confirm",
+                    if (aiSettings.autoRunTools) "工具自动执行" else "工具需确认",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp),
@@ -186,7 +186,7 @@ private fun CopilotTab(
             }
             Spacer(Modifier.weight(1f))
             IconButton(onClick = onOpenSettings) {
-                Icon(Icons.Rounded.Settings, contentDescription = "AI settings", modifier = Modifier.size(20.dp))
+                Icon(Icons.Rounded.Settings, contentDescription = "AI 设置", modifier = Modifier.size(20.dp))
             }
         }
         if (aiSettings.apiKey.isBlank()) {
@@ -199,12 +199,12 @@ private fun CopilotTab(
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "Add an API key in Settings to bring the copilot online. Local Ollama endpoints need no key.",
+                        "在设置中填入 API 密钥即可启用智能助手。本地 Ollama 无需密钥。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.weight(1f),
                     )
-                    TextButton(onClick = onOpenSettings) { Text("Set up") }
+                    TextButton(onClick = onOpenSettings) { Text("去设置") }
                 }
             }
         }
@@ -239,7 +239,7 @@ private fun CopilotTab(
                 TextField(
                     value = input,
                     onValueChange = { input = it },
-                    placeholder = { Text("Ask the copilot to edit, convert, script…") },
+                    placeholder = { Text("让智能助手剪辑、转换或写脚本…") },
                     modifier = Modifier.fillMaxWidth(),
                     maxLines = 4,
                     colors = TextFieldDefaults.colors(
@@ -267,7 +267,7 @@ private fun CopilotTab(
                 shape = CircleShape,
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(14.dp),
             ) {
-                Icon(Icons.Rounded.Send, contentDescription = "Send")
+                Icon(Icons.Rounded.Send, contentDescription = "发送")
             }
         }
     }
@@ -291,8 +291,8 @@ private fun CopilotWelcome(suggestions: List<String>, onSend: (String) -> Unit) 
                 }
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text("Your on-device media copilot", style = MaterialTheme.typography.titleLarge)
-                    Text("Sees all workspace files · runs FFmpeg · runs Python", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("你的本地媒体智能助手", style = MaterialTheme.typography.titleLarge)
+                    Text("可查看全部文件 · 运行 FFmpeg · 执行 Python", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(14.dp))
@@ -349,7 +349,7 @@ private fun AssistantBubble(message: ChatMessage) {
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    if (message.isError) "Copilot error" else "Copilot",
+                    if (message.isError) "智能助手出错" else "智能助手",
                     style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold,
                     color = if (message.isError) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.primary,
@@ -433,7 +433,7 @@ private fun ThinkingBubble() {
         Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
             Spacer(Modifier.width(8.dp))
-            Text("Thinking with tools…", style = MaterialTheme.typography.bodySmall)
+            Text("正在调用工具…", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -472,10 +472,10 @@ private fun PythonTab(
                             Icon(Icons.Rounded.Code, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer)
                             Spacer(Modifier.width(8.dp))
                             Column(Modifier.weight(1f)) {
-                                Text("Embedded Python 3.11", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
-                                Text("Scripts run locally with FFmpeg access.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
+                                Text("内置 Python 3.11", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Text("脚本在本地运行，可直接调用 FFmpeg。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f))
                             }
-                            IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, contentDescription = "Refresh") }
+                            IconButton(onClick = onRefresh) { Icon(Icons.Rounded.Refresh, contentDescription = "刷新") }
                         }
                     }
                 }
@@ -488,17 +488,17 @@ private fun PythonTab(
                         editorOpen = true
                     }, shape = RoundedCornerShape(14.dp)) {
                         Icon(Icons.Rounded.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp)); Text("New script")
+                        Spacer(Modifier.width(6.dp)); Text("新建脚本")
                     }
                     OutlinedButton(onClick = onInstallLibrary, shape = RoundedCornerShape(14.dp)) {
                         Icon(Icons.Rounded.FolderZip, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp)); Text("Add library")
+                        Spacer(Modifier.width(6.dp)); Text("添加库")
                     }
                 }
             }
-            item { SectionHeader("Scripts", "${scripts.size} available · tap run or edit") }
+            item { SectionHeader("脚本", "${scripts.size} 个可用 · 点击运行或编辑") }
             if (scripts.isEmpty()) {
-                item { Text("No scripts yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item { Text("还没有脚本。", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             }
             items(scripts, key = { it.relativePath }) { script ->
                 ScriptCard(
@@ -516,8 +516,8 @@ private fun PythonTab(
             if (state.logs.isNotBlank()) {
                 item {
                     SectionHeader(
-                        "Output",
-                        if (state.running) "Running ${state.script}" else if (state.failed) "Last run failed" else "Last run",
+                        "输出",
+                        if (state.running) "正在运行 ${state.script}" else if (state.failed) "上次运行失败" else "上次运行",
                     )
                 }
                 item {
@@ -550,13 +550,13 @@ private fun PythonTab(
     if (editorOpen) {
         AlertDialog(
             onDismissRequest = { editorOpen = false },
-            title = { Text(if (editTarget == null) "New Python script" else "Edit ${editTarget?.name}") },
+            title = { Text(if (editTarget == null) "新建 Python 脚本" else "编辑 ${editTarget?.name}") },
             text = {
                 Column {
                     OutlinedTextField(
                         value = draftName,
                         onValueChange = { draftName = it },
-                        label = { Text("File name") },
+                        label = { Text("文件名") },
                         singleLine = true,
                         enabled = editTarget == null,
                         modifier = Modifier.fillMaxWidth(),
@@ -565,7 +565,7 @@ private fun PythonTab(
                     OutlinedTextField(
                         value = draftContent,
                         onValueChange = { draftContent = it },
-                        label = { Text("Python source") },
+                        label = { Text("Python 源码") },
                         textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
                         modifier = Modifier.fillMaxWidth().height(340.dp),
                     )
@@ -576,21 +576,21 @@ private fun PythonTab(
                     onSave(draftName, draftContent)
                     editorOpen = false
                     editTarget = null
-                }) { Text("Save") }
+                }) { Text("保存") }
             },
-            dismissButton = { TextButton(onClick = { editorOpen = false; editTarget = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { editorOpen = false; editTarget = null }) { Text("取消") } },
         )
     }
     runTarget?.let { script ->
         var args by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { runTarget = null },
-            title = { Text("Run ${script.name}") },
+            title = { Text("运行 ${script.name}") },
             text = {
                 OutlinedTextField(
                     value = args,
                     onValueChange = { args = it },
-                    label = { Text("Arguments (optional)") },
+                    label = { Text("参数（可选）") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                 )
@@ -599,9 +599,9 @@ private fun PythonTab(
                 TextButton(onClick = {
                     onRun(script.relativePath, args)
                     runTarget = null
-                }) { Text("Run") }
+                }) { Text("运行") }
             },
-            dismissButton = { TextButton(onClick = { runTarget = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { runTarget = null }) { Text("取消") } },
         )
     }
 }
@@ -619,7 +619,7 @@ private fun ScriptCard(script: ScriptEntry, onRun: () -> Unit, onEdit: () -> Uni
                 Text(script.relativePath, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             IconButton(onClick = onEdit) { Icon(Icons.Rounded.Code, contentDescription = "Edit", modifier = Modifier.size(19.dp)) }
-            IconButton(onClick = onRun) { Icon(Icons.Rounded.PlayArrow, contentDescription = "Run", modifier = Modifier.size(22.dp)) }
+            IconButton(onClick = onRun) { Icon(Icons.Rounded.PlayArrow, contentDescription = "运行", modifier = Modifier.size(22.dp)) }
             IconButton(onClick = onDelete) { Icon(Icons.Rounded.Delete, contentDescription = "Delete", modifier = Modifier.size(19.dp)) }
         }
     }
@@ -640,10 +640,10 @@ private fun LibrariesTab(
         item {
             Surface(shape = RoundedCornerShape(22.dp), color = MaterialTheme.colorScheme.primaryContainer) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Add Python libraries", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Text("添加 Python 库", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Import pure-Python .whl or .zip packages. Wheels with native extensions are not supported. Standard library modules are always available.",
+                        "导入纯 Python 的 .whl 或 .zip 包。暂不支持包含原生扩展的 wheel，标准库模块始终可用。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f),
                     )
@@ -652,18 +652,18 @@ private fun LibrariesTab(
                         Button(onClick = onInstall, shape = RoundedCornerShape(14.dp)) {
                             Icon(Icons.Rounded.Add, contentDescription = null)
                             Spacer(Modifier.width(6.dp))
-                            Text("Import library")
+                            Text("导入库")
                         }
-                        OutlinedButton(onClick = onRefresh, shape = RoundedCornerShape(14.dp)) { Text("Refresh") }
+                        OutlinedButton(onClick = onRefresh, shape = RoundedCornerShape(14.dp)) { Text("刷新") }
                     }
                 }
             }
         }
-        item { SectionHeader("Installed", "${libraries.size} package(s) on sys.path") }
+        item { SectionHeader("已安装", "${libraries.size} 个包已加入 sys.path") }
         if (libraries.isEmpty()) {
             item {
                 Text(
-                    "No third-party packages yet. Import a wheel or zip to make it importable by every script.",
+                    "还没有第三方包。导入 wheel 或 zip 后，所有脚本都可以 import。",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -677,7 +677,7 @@ private fun LibrariesTab(
                     Column(Modifier.weight(1f)) {
                         Text(library.name, style = MaterialTheme.typography.titleSmall)
                         Text(
-                            "${library.version.ifBlank { "local" }} · ${library.kind}",
+                            "${library.version.ifBlank { "本地" }} · ${library.kind}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -692,7 +692,7 @@ private fun LibrariesTab(
 @Composable
 private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenTask: (TaskRecord) -> Unit) {
     var command by rememberSaveable { mutableStateOf("-version") }
-    val last = tasks.firstOrNull { it.title == "FFmpeg console" }
+    val last = tasks.firstOrNull { it.title == "FFmpeg 控制台" }
     val examples = listOf(
         "-version",
         "-f lavfi -i testsrc2=size=1280x720:rate=30:duration=3 -c:v libx264 -pix_fmt yuv420p outputs/console_test.mp4",
@@ -709,11 +709,11 @@ private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenT
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.Terminal, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text("FFmpeg console", style = MaterialTheme.typography.titleMedium)
+                        Text("FFmpeg 控制台", style = MaterialTheme.typography.titleMedium)
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Full command access. Relative paths resolve inside the app sandbox when possible; absolute workspace paths are safest.",
+                        "完整命令权限。相对路径会尽量在应用沙盒内解析，最稳妥的方式是使用工作区绝对路径。",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -724,7 +724,7 @@ private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenT
             OutlinedTextField(
                 value = command,
                 onValueChange = { command = it },
-                label = { Text("ffmpeg …") },
+                label = { Text("ffmpeg 命令…") },
                 minLines = 3,
                 maxLines = 8,
                 textStyle = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
@@ -739,7 +739,7 @@ private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenT
             ) {
                 Icon(Icons.Rounded.PlayArrow, contentDescription = null)
                 Spacer(Modifier.width(6.dp))
-                Text("Execute")
+                Text("执行")
             }
         }
         item {
@@ -763,15 +763,15 @@ private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenT
         if (last != null) {
             item {
                 SectionHeader(
-                    "Last console run",
+                    "最近一次控制台运行",
                     last.status.name.lowercase(),
-                    trailing = { TextButton(onClick = { onOpenTask(last) }) { Text("Full detail") } },
+                    trailing = { TextButton(onClick = { onOpenTask(last) }) { Text("完整详情") } },
                 )
             }
             item {
                 Surface(shape = RoundedCornerShape(18.dp), color = Color(0xFF0D1712), modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        last.logs.takeLast(5000).ifBlank { "Waiting for output…" },
+                        last.logs.takeLast(5000).ifBlank { "等待输出…" },
                         style = MaterialTheme.typography.bodySmall.copy(fontSize = 10.sp, lineHeight = 14.sp),
                         fontFamily = FontFamily.Monospace,
                         color = Color(0xFFB9F6CA),
@@ -782,7 +782,7 @@ private fun ConsoleTab(tasks: List<TaskRecord>, onRun: (String) -> Unit, onOpenT
         }
         item {
             Text(
-                "Advanced: commands run in the app's FFmpeg sandbox. Imported files live under inbox/; generated media belongs in outputs/.",
+                "高级功能：命令在应用的 FFmpeg 沙盒中运行。导入文件位于 inbox/，生成的媒体应放在 outputs/。",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(bottom = 12.dp),
@@ -795,10 +795,10 @@ private val DEFAULT_PYTHON = """
 import ffmpeg_gui
 
 def main(argv):
-    ffmpeg_gui.log("Hello from Python " + str(argv))
+    ffmpeg_gui.log("你好，来自 Python " + str(argv))
     for item in ffmpeg_gui.media_entries():
-        print(f"{item['name']} · {item['kind']} · {item['duration_ms']} ms")
-    return "Done"
+        print(f"{item['name']} · {item['kind']} · {item['duration_ms']} 毫秒")
+    return "完成"
 
 if __name__ == "__main__":
     main([])

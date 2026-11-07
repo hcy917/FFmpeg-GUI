@@ -88,12 +88,12 @@ fun StudioScreen(
 
         item {
             SectionHeader(
-                title = "Quick actions",
-                subtitle = "Everything happens on-device",
+                title = "快捷操作",
+                subtitle = "全部在设备本地完成",
                 trailing = {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
                         Text(
-                            "OFFLINE FIRST",
+                            "本地优先",
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -108,8 +108,8 @@ fun StudioScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     QuickAction(
-                        title = "Convert",
-                        subtitle = "Batch + presets",
+                        title = "转换",
+                        subtitle = "批量 · 预设",
                         icon = Icons.Rounded.SwapHoriz,
                         accent = MaterialTheme.colorScheme.primaryContainer,
                         onAccent = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -117,8 +117,8 @@ fun StudioScreen(
                         modifier = Modifier.weight(1f),
                     )
                     QuickAction(
-                        title = "Merge",
-                        subtitle = "All formats",
+                        title = "合并",
+                        subtitle = "全格式",
                         icon = Icons.Rounded.CallMerge,
                         accent = FfmpegAmber.copy(alpha = 0.35f),
                         onAccent = MaterialTheme.colorScheme.onSurface,
@@ -128,8 +128,8 @@ fun StudioScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     QuickAction(
-                        title = "Split",
-                        subtitle = "Any output",
+                        title = "拆分",
+                        subtitle = "任意输出",
                         icon = Icons.Rounded.ContentCut,
                         accent = FfmpegCoral.copy(alpha = 0.30f),
                         onAccent = MaterialTheme.colorScheme.onSurface,
@@ -137,7 +137,7 @@ fun StudioScreen(
                         modifier = Modifier.weight(1f),
                     )
                     QuickAction(
-                        title = "Lab",
+                        title = "实验室",
                         subtitle = "Python + AI",
                         icon = Icons.Rounded.Science,
                         accent = FfmpegSky.copy(alpha = 0.32f),
@@ -152,10 +152,10 @@ fun StudioScreen(
         if (tasks.isNotEmpty()) {
             item {
                 SectionHeader(
-                    title = "Activity",
-                    subtitle = "Live FFmpeg sessions",
+                    title = "任务活动",
+                    subtitle = "实时 FFmpeg 会话",
                     trailing = {
-                        TextButton(onClick = { tasks.firstOrNull()?.let(onOpenTask) }) { Text("Details") }
+                        TextButton(onClick = { tasks.firstOrNull()?.let(onOpenTask) }) { Text("详情") }
                     },
                 )
             }
@@ -166,10 +166,10 @@ fun StudioScreen(
 
         item {
             SectionHeader(
-                title = "Media library",
-                subtitle = if (media.isEmpty()) "Nothing here yet" else "${media.size} assets · ${formatBytes(stats.totalBytes)}",
+                title = "媒体库",
+                subtitle = if (media.isEmpty()) "还没有媒体" else "${media.size} 个媒体 · ${formatBytes(stats.totalBytes)}",
                 trailing = if (media.isNotEmpty()) {
-                    { TextButton(onClick = { onNavigate(AppScreen.Convert) }) { Text("Convert") } }
+                    { TextButton(onClick = { onNavigate(AppScreen.Convert) }) { Text("转换") } }
                 } else null,
             )
         }
@@ -194,7 +194,7 @@ fun StudioScreen(
             if (media.size > 5) {
                 item {
                     TextButton(onClick = { onNavigate(AppScreen.Convert) }, modifier = Modifier.fillMaxWidth()) {
-                        Text("See all ${media.size} assets")
+                        Text("查看全部 ${media.size} 个媒体")
                     }
                 }
             }
@@ -212,7 +212,7 @@ fun StudioScreen(
                 MediaKindIcon(com.ffmpeg.gui.data.MediaKind.OTHER, Modifier.size(32.dp))
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "FFmpeg runs locally · Python 3.11 embedded · no cloud required",
+                    "FFmpeg 本地运行 · 内置 Python 3.11 · 无需云端",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -313,7 +313,7 @@ private fun AiBanner(onClick: () -> Unit, onSettings: () -> Unit) {
                     Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "MEDIA COPILOT",
+                        "媒体智能助手",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f),
@@ -322,13 +322,13 @@ private fun AiBanner(onClick: () -> Unit, onSettings: () -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Ask for a cut, a conversion, or a script.",
+                    "让 AI 帮你剪辑、转换或写脚本。",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "The copilot can inspect every workspace file, run FFmpeg, and execute Python through guarded tools.",
+                    "智能助手可以查看工作区中的全部文件，通过受控工具运行 FFmpeg 和 Python。",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
                 )
@@ -336,7 +336,7 @@ private fun AiBanner(onClick: () -> Unit, onSettings: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(shape = CircleShape, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f)) {
                         Text(
-                            "Open copilot",
+                            "打开智能助手",
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -344,7 +344,7 @@ private fun AiBanner(onClick: () -> Unit, onSettings: () -> Unit) {
                     }
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = onSettings) {
-                        Text("Configure", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f))
+                        Text("配置", color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f))
                     }
                 }
             }

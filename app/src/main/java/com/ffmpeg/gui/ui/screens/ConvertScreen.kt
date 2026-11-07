@@ -77,9 +77,9 @@ fun ConvertScreen(
         ) {
             item {
                 ScreenIntro(
-                    eyebrow = "Batch engine",
-                    title = "One format.\nEvery file.",
-                    subtitle = "Pick a template, choose any mix of media, and let FFmpeg normalise the whole batch.",
+                    eyebrow = "批量引擎",
+                    title = "一种格式。\n全部文件。",
+                    subtitle = "选择预设，勾选任意媒体，让 FFmpeg 把整批文件统一处理。",
                 )
             }
             item {
@@ -91,13 +91,13 @@ fun ConvertScreen(
                         onImportFiles = onImportFiles,
                         onImportFolder = onImportFolder,
                         onDemo = onDemo,
-                        title = "No source files",
-                        body = "Add files or folders, or generate a demo clip to test conversion.",
+                        title = "没有源文件",
+                        body = "添加文件或文件夹，也可以生成演示片段来测试转换。",
                     )
                 }
             } else {
                 item {
-                    SectionHeader("Template", "${Presets.all.size} presets across video, audio, image and remux")
+                    SectionHeader("预设模板", "${Presets.all.size} 个预设，覆盖视频、音频、图像与封装")
                 }
                 item {
                     PillTabs(options = categories, selected = category, onSelect = { newCategory ->
@@ -122,8 +122,8 @@ fun ConvertScreen(
                 }
                 item {
                     SectionHeader(
-                        title = "Sources",
-                        subtitle = "${selectedItems.size} of ${media.size} selected",
+                        title = "源文件",
+                        subtitle = "已选 ${selectedItems.size} / ${media.size}",
                         trailing = {
                             TextButton(onClick = {
                                 if (selectedIds.size == media.size) selectedIds.clear()
@@ -132,7 +132,7 @@ fun ConvertScreen(
                                     selectedIds.addAll(media.map { it.id })
                                 }
                             }) {
-                                Text(if (selectedIds.size == media.size) "Clear" else "Select all")
+                                Text(if (selectedIds.size == media.size) "清空" else "全选")
                             }
                         },
                     )
@@ -158,7 +158,7 @@ fun ConvertScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            if (selectedItems.isEmpty()) "Select files to convert" else "${selectedItems.size} file(s) · ${selectedPreset.extension.uppercase()}",
+                            if (selectedItems.isEmpty()) "选择要转换的文件" else "${selectedItems.size} 个文件 · ${selectedPreset.extension.uppercase()}",
                             style = MaterialTheme.typography.titleSmall,
                         )
                         Text(
@@ -179,7 +179,7 @@ fun ConvertScreen(
                     ) {
                         Icon(Icons.Rounded.SwapHoriz, contentDescription = null)
                         Spacer(Modifier.width(8.dp))
-                        Text("Convert ${selectedItems.size}".trim())
+                        Text("转换 ${selectedItems.size} 个".trim())
                     }
                 }
             }
@@ -242,7 +242,7 @@ private fun PresetDetail(preset: Preset) {
             Icon(Icons.Rounded.AutoAwesome, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             Spacer(Modifier.width(10.dp))
             Text(
-                preset.subtitle + " · outputs are saved to the app's outputs folder and appear in your library.",
+                preset.subtitle + " · 输出保存在应用的 outputs 目录，并自动加入媒体库。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

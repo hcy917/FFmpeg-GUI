@@ -49,14 +49,14 @@ class PythonRunner(
     fun pythonVersion(): String = runCatching {
         ensureStarted()
         Python.getInstance().getModule("sys").get("version").toString()
-    }.getOrDefault("Python (not started)")
+    }.getOrDefault("Python（未启动）")
 
     suspend fun runScript(relativePath: String, args: String, onLog: (String) -> Unit): PythonRunResult = mutex.withLock {
         withContext(Dispatchers.IO) {
             val start = System.currentTimeMillis()
             val file = workspace.resolve(relativePath)
-                ?: return@withContext PythonRunResult(false, "", "Script path is outside the workspace")
-            if (!file.isFile) return@withContext PythonRunResult(false, "", "Script not found: $relativePath")
+                ?: return@withContext PythonRunResult(false, "", "脚本路径不在工作区内")
+            if (!file.isFile) return@withContext PythonRunResult(false, "", "找不到脚本：$relativePath")
             try {
                 ensureStarted()
                 workspace.libsDir.mkdirs()
@@ -80,7 +80,7 @@ class PythonRunner(
                 )
             } catch (t: Throwable) {
                 val detail = t.message ?: t.toString()
-                onLog("✗ Python error: $detail")
+                onLog("✗ Python 错误：$detail")
                 PythonRunResult(false, "", detail, System.currentTimeMillis() - start)
             } finally {
                 PythonBridge.end()
@@ -122,18 +122,18 @@ class PythonRunner(
             val temp = File(workspace.tempDir, workspace.sanitize(name))
             context.contentResolver.openInputStream(uri)?.use { input ->
                 temp.outputStream().use { output -> input.copyTo(output) }
-            } ?: error("Could not read the selected library file")
+            } ?: error("无法读取所选库文件")
             workspace.libsDir.mkdirs()
             val lower = name.lowercase()
             if (lower.endsWith(".py")) {
                 val target = workspace.uniqueFile(workspace.libsDir, workspace.sanitize(name))
                 temp.copyTo(target, overwrite = true)
-                onProgress("Added single-file module ${target.name}")
+                onProgress("已添加单文件模块 ${target.name}")
                 temp.delete()
                 return@runCatching target.name
             }
             if (!lower.endsWith(".zip") && !lower.endsWith(".whl")) {
-                error("Choose a .whl, .zip, or .py library")
+                error("请选择 .whl、.zip 或 .py 库文件")
             }
             var count = 0
             ZipInputStream(temp.inputStream().buffered()).use { zip ->
@@ -142,21 +142,21 @@ class PythonRunner(
                     val entryName = entry.name.replace('\\', '/')
                     if (entry.isDirectory) continue
                     if (entryName.startsWith("/") || entryName.split('/').any { it == ".." }) {
-                        throw SecurityException("Unsafe path in library archive: ${entry.name}")
+                        throw SecurityException("库压缩包中存在不安全路径：${entry.name}")
                     }
                     val target = File(workspace.libsDir, entryName)
                     if (!target.canonicalPath.startsWith(workspace.libsDir.canonicalPath + File.separator)) {
-                        throw SecurityException("Unsafe path in library archive: ${entry.name}")
+                        throw SecurityException("库压缩包中存在不安全路径：${entry.name}")
                     }
                     target.parentFile?.mkdirs()
                     target.outputStream().use { output -> zip.copyTo(output) }
                     count++
-                    if (count % 20 == 0) onProgress("Extracting $count files…")
+                    if (count % 20 == 0) onProgress("正在解压 $count 个文件…")
                 }
             }
             temp.delete()
-            onProgress("Installed ${count.coerceAtLeast(1)} files into the Python library path")
-            "Installed $name ($count files). Restart a script to import it."
+            onProgress("已将 ${count.coerceAtLeast(1)} 个文件安装到 Python 库路径")
+            "已安装 $name（$count 个文件）。重新运行脚本即可导入。"
         }
     }
 
@@ -172,11 +172,11 @@ class PythonRunner(
                     val version = meta.takeIf { it.isFile }?.readLines()
                         ?.firstOrNull { it.startsWith("Version:") }?.removePrefix("Version:")?.trim()
                     if (name != null) {
-                        result += PythonLibrary(name, version ?: "", entry.name, "wheel metadata")
+                        result += PythonLibrary(name, version ?: "", entry.name, "wheel 元数据")
                     }
                 }
-                entry.isDirectory -> result += PythonLibrary(entry.name, "", entry.name, "package")
-                entry.extension == "py" -> result += PythonLibrary(entry.nameWithoutExtension, "", entry.name, "module")
+                entry.isDirectory -> result += PythonLibrary(entry.name, "", entry.name, "包")
+                entry.extension == "py" -> result += PythonLibrary(entry.nameWithoutExtension, "", entry.name, "模块")
             }
         }
         return result.distinctBy { it.name }
@@ -196,15 +196,13 @@ class PythonRunner(
 
     private fun copyExampleScripts() {
         val examples = File(workspace.pythonDir, "examples").apply { mkdirs() }
-        val marker = File(examples, ".seeded_v1")
+        val marker = File(examples, ".seeded_v2")
         if (marker.exists()) return
         runCatching {
             listOf("probe_library.py", "batch_convert.py", "smart_report.py").forEach { name ->
                 val target = File(examples, name)
-                if (!target.exists()) {
-                    context.assets.open("python_examples/$name").use { input ->
-                        target.outputStream().use { output -> input.copyTo(output) }
-                    }
+                context.assets.open("python_examples/$name").use { input ->
+                    target.outputStream().use { output -> input.copyTo(output) }
                 }
             }
             marker.writeText("ok")

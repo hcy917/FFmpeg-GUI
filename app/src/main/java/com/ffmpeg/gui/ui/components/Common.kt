@@ -73,7 +73,7 @@ fun BrandLogo(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun BrandBadge(text: String = "MOBILE STUDIO") {
+fun BrandBadge(text: String = "移动工作台") {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
@@ -133,21 +133,21 @@ fun StudioHero(
                 }
                 Spacer(Modifier.height(22.dp))
                 Text(
-                    text = "Make media\nmove.",
+                    text = "让媒体\n随心而变。",
                     style = MaterialTheme.typography.displaySmall,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "One workspace for every format. Convert batches, join timelines, split reels, script it in Python, or hand the controls to an AI copilot.",
+                    text = "一个工作台，通吃所有格式。批量转换、拼接时间线、拆分片段、用 Python 写流程，或把控制权交给 AI 助手。",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(18.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    StatBlock(value = mediaCount.toString(), label = "assets", modifier = Modifier.weight(1f))
-                    StatBlock(value = formatBytes(totalBytes), label = "in workspace", modifier = Modifier.weight(1f))
-                    StatBlock(value = presetCount.toString(), label = "presets", modifier = Modifier.weight(1f))
+                    StatBlock(value = mediaCount.toString(), label = "个媒体", modifier = Modifier.weight(1f))
+                    StatBlock(value = formatBytes(totalBytes), label = "占用空间", modifier = Modifier.weight(1f))
+                    StatBlock(value = presetCount.toString(), label = "个预设", modifier = Modifier.weight(1f))
                 }
                 Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -158,7 +158,7 @@ fun StudioHero(
                     ) {
                         Icon(Icons.Rounded.UploadFile, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Import files")
+                        Text("导入文件")
                     }
                     OutlinedButton(
                         onClick = onImportFolder,
@@ -167,7 +167,7 @@ fun StudioHero(
                     ) {
                         Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Folder")
+                        Text("文件夹")
                     }
                 }
             }
@@ -254,7 +254,7 @@ fun ImportActions(
         ) {
             Icon(Icons.Rounded.UploadFile, contentDescription = null, modifier = Modifier.size(19.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Add files")
+            Text("添加文件")
         }
         OutlinedButton(
             onClick = onFolder,
@@ -264,7 +264,7 @@ fun ImportActions(
         ) {
             Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(19.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Add folder")
+            Text("添加文件夹")
         }
     }
 }
@@ -389,8 +389,8 @@ fun EmptyMediaState(
     onImportFolder: () -> Unit,
     onDemo: () -> Unit,
     modifier: Modifier = Modifier,
-    title: String = "Your library is empty",
-    body: String = "Import media from your device or generate a demo clip to try the workspace.",
+    title: String = "媒体库还是空的",
+    body: String = "从设备导入媒体，或生成一段演示片段来体验工作区。",
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -412,7 +412,7 @@ fun EmptyMediaState(
             ImportActions(onFiles = onImportFiles, onFolder = onImportFolder)
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = onDemo, shape = RoundedCornerShape(14.dp)) {
-                Text("Generate a demo clip")
+                Text("生成演示片段")
             }
         }
     }

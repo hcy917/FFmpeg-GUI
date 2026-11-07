@@ -23,10 +23,10 @@ data class Preset(
 )
 
 enum class PresetCategory(val label: String) {
-    VIDEO("Video"),
-    AUDIO("Audio"),
-    IMAGE("Image"),
-    UTILITY("Remux"),
+    VIDEO("视频"),
+    AUDIO("音频"),
+    IMAGE("图像"),
+    UTILITY("封装"),
 }
 
 object Presets {
@@ -34,7 +34,7 @@ object Presets {
         Preset(
             id = "mp4_1080_h264",
             title = "MP4 · 1080p H.264",
-            subtitle = "Universal playback, AAC audio",
+            subtitle = "通用播放，AAC 音频",
             extension = "mp4",
             category = PresetCategory.VIDEO,
             badge = "1080p",
@@ -46,7 +46,7 @@ object Presets {
         Preset(
             id = "mp4_720_h264",
             title = "MP4 · 720p H.264",
-            subtitle = "Smaller files for sharing",
+            subtitle = "更小的分享体积",
             extension = "mp4",
             category = PresetCategory.VIDEO,
             badge = "720p",
@@ -58,7 +58,7 @@ object Presets {
         Preset(
             id = "mp4_1080_hevc",
             title = "MP4 · 1080p HEVC",
-            subtitle = "H.265 / x265, efficient archive",
+            subtitle = "H.265 / x265，高效率归档",
             extension = "mp4",
             category = PresetCategory.VIDEO,
             badge = "HEVC",
@@ -70,7 +70,7 @@ object Presets {
         Preset(
             id = "mkv_1080_h264",
             title = "MKV · 1080p H.264",
-            subtitle = "Flexible Matroska container",
+            subtitle = "灵活的 Matroska 容器",
             extension = "mkv",
             category = PresetCategory.VIDEO,
             badge = "MKV",
@@ -81,7 +81,7 @@ object Presets {
         Preset(
             id = "webm_vp9",
             title = "WebM · VP9 + Opus",
-            subtitle = "Open codecs for the web",
+            subtitle = "Web 开放编码",
             extension = "webm",
             category = PresetCategory.VIDEO,
             badge = "VP9",
@@ -92,7 +92,7 @@ object Presets {
         Preset(
             id = "mov_prores",
             title = "MOV · ProRes 422",
-            subtitle = "Edit-ready intermediate",
+            subtitle = "剪辑友好的中间格式",
             extension = "mov",
             category = PresetCategory.VIDEO,
             badge = "ProRes",
@@ -102,7 +102,7 @@ object Presets {
         Preset(
             id = "gif_640",
             title = "GIF · 15 fps 640 px",
-            subtitle = "Palette-optimised animation",
+            subtitle = "调色板优化的动画",
             extension = "gif",
             category = PresetCategory.IMAGE,
             badge = "GIF",
@@ -112,7 +112,7 @@ object Presets {
         Preset(
             id = "mp3_320",
             title = "MP3 · 320 kbps",
-            subtitle = "High quality lossy audio",
+            subtitle = "高品质有损音频",
             extension = "mp3",
             category = PresetCategory.AUDIO,
             isAudioOnly = true,
@@ -122,7 +122,7 @@ object Presets {
         Preset(
             id = "m4a_aac",
             title = "M4A · AAC 256 kbps",
-            subtitle = "Efficient Apple-friendly audio",
+            subtitle = "高效的 Apple 友好音频",
             extension = "m4a",
             category = PresetCategory.AUDIO,
             isAudioOnly = true,
@@ -132,8 +132,8 @@ object Presets {
         ),
         Preset(
             id = "flac_lossless",
-            title = "FLAC · Lossless",
-            subtitle = "Bit-perfect archive audio",
+            title = "FLAC · 无损",
+            subtitle = "无损归档音频",
             extension = "flac",
             category = PresetCategory.AUDIO,
             isAudioOnly = true,
@@ -142,8 +142,8 @@ object Presets {
         ),
         Preset(
             id = "wav_pcm",
-            title = "WAV · PCM 16-bit",
-            subtitle = "Studio-ready uncompressed audio",
+            title = "WAV · PCM 16 位",
+            subtitle = "录音棚级未压缩音频",
             extension = "wav",
             category = PresetCategory.AUDIO,
             isAudioOnly = true,
@@ -153,7 +153,7 @@ object Presets {
         Preset(
             id = "opus_audio",
             title = "Opus · 160 kbps",
-            subtitle = "Modern low-bitrate audio",
+            subtitle = "现代低码率音频",
             extension = "opus",
             category = PresetCategory.AUDIO,
             isAudioOnly = true,
@@ -162,8 +162,8 @@ object Presets {
         ),
         Preset(
             id = "jpg_max",
-            title = "JPEG · high quality",
-            subtitle = "Still image, max 2560 px",
+            title = "JPEG · 高质量",
+            subtitle = "静帧，最长边 2560 px",
             extension = "jpg",
             category = PresetCategory.IMAGE,
             badge = "JPG",
@@ -172,8 +172,8 @@ object Presets {
         ),
         Preset(
             id = "png_image",
-            title = "PNG · lossless",
-            subtitle = "Still image with alpha",
+            title = "PNG · 无损",
+            subtitle = "带透明通道的静帧",
             extension = "png",
             category = PresetCategory.IMAGE,
             badge = "PNG",
@@ -182,8 +182,8 @@ object Presets {
         ),
         Preset(
             id = "remux_mp4",
-            title = "Remux · MP4 copy",
-            subtitle = "No re-encode, fastest",
+            title = "封装 · MP4 直接复制",
+            subtitle = "不重新编码，速度最快",
             extension = "mp4",
             category = PresetCategory.UTILITY,
             badge = "COPY",

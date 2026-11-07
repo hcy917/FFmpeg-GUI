@@ -33,7 +33,7 @@ data class MediaItem(
         get() = if (width > 0 && height > 0) "${width}×${height}" else ""
 
     val formatLabel: String
-        get() = name.substringAfterLast('.', "").uppercase().ifBlank { "MEDIA" }
+        get() = name.substringAfterLast('.', "").uppercase().ifBlank { "媒体" }
 }
 
 @Serializable
@@ -124,10 +124,10 @@ data class AiSettings(
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
-            "You are FFmpeg Studio's media copilot. You operate inside the user's FFmpeg GUI workspace. " +
-                "You can inspect all files, probe media, run FFmpeg, and execute Python scripts. " +
-                "Be concise and practical. Prefer relative paths inside the workspace. " +
-                "Before destructive operations, explain what you will do. Report exact output paths when done."
+            "你是 FFmpeg GUI 的本地媒体智能助手，在用户的应用工作区内工作。" +
+                "你可以查看全部文件、探测媒体、运行 FFmpeg，并执行 Python 脚本。" +
+                "请始终使用简体中文回答，语气简洁、务实。" +
+                "优先使用工作区内的路径；执行有破坏性的操作前先说明将要做什么；完成后报告准确的输出路径。"
     }
 }
 

@@ -64,7 +64,7 @@ fun MergeScreen(
     var fps by rememberSaveable { mutableStateOf(30) }
     var container by rememberSaveable { mutableStateOf("mp4") }
     val selected = order.mapNotNull { id -> media.firstOrNull { it.id == id } }
-    val resolutionPairs = listOf("1080p" to (1920 to 1080), "720p" to (1280 to 720), "4K" to (3840 to 2160), "Vertical" to (1080 to 1920))
+    val resolutionPairs = listOf("1080p" to (1920 to 1080), "720p" to (1280 to 720), "4K" to (3840 to 2160), "竖屏" to (1080 to 1920))
     val (width, height) = resolutionPairs.firstOrNull { it.first == resolution }?.second ?: (1920 to 1080)
     val allAudio = selected.isNotEmpty() && selected.all { it.kind == MediaKind.AUDIO }
     val hasImages = selected.any { it.kind == MediaKind.IMAGE }
@@ -78,9 +78,9 @@ fun MergeScreen(
         ) {
             item {
                 ScreenIntro(
-                    eyebrow = "Timeline merge",
-                    title = "Different sources.\nOne story.",
-                    subtitle = "Audio, video and stills are normalised to a shared timeline: resolution, frame rate and 48 kHz stereo audio.",
+                    eyebrow = "时间线合并",
+                    title = "不同来源。\n同一个故事。",
+                    subtitle = "音频、视频与静帧会统一到同一条时间线：分辨率、帧率和 48 kHz 立体声。",
                 )
             }
             item { ImportActions(onFiles = onImportFiles, onFolder = onImportFolder) }
@@ -90,17 +90,17 @@ fun MergeScreen(
                         onImportFiles = onImportFiles,
                         onImportFolder = onImportFolder,
                         onDemo = {},
-                        title = "Add clips to merge",
-                        body = "Bring in two or more videos, audio tracks, or images and arrange them below.",
+                        title = "添加要合并的片段",
+                        body = "导入两个或更多视频、音频或图片，然后在下方排列顺序。",
                     )
                 }
             } else {
                 if (order.isNotEmpty()) {
                     item {
                         SectionHeader(
-                            "Sequence",
-                            "${order.size} part(s) · ${formatClock(totalDuration)}",
-                            trailing = { TextButton(onClick = { order.clear() }) { Text("Clear") } },
+                            "合并顺序",
+                            "${order.size} 个片段 · ${formatClock(totalDuration)}",
+                            trailing = { TextButton(onClick = { order.clear() }) { Text("清空") } },
                         )
                     }
                     item {
@@ -133,17 +133,17 @@ fun MergeScreen(
                                                 val tmp = order[index - 1]; order[index - 1] = order[index]; order[index] = tmp
                                             }
                                         }, enabled = index > 0) {
-                                            Icon(Icons.Rounded.ArrowUpward, contentDescription = "Move up", modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Rounded.ArrowUpward, contentDescription = "上移", modifier = Modifier.size(18.dp))
                                         }
                                         IconButton(onClick = {
                                             if (index < order.lastIndex) {
                                                 val tmp = order[index + 1]; order[index + 1] = order[index]; order[index] = tmp
                                             }
                                         }, enabled = index < order.lastIndex) {
-                                            Icon(Icons.Rounded.ArrowDownward, contentDescription = "Move down", modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Rounded.ArrowDownward, contentDescription = "下移", modifier = Modifier.size(18.dp))
                                         }
                                         IconButton(onClick = { order.removeAt(index) }) {
-                                            Icon(Icons.Rounded.Close, contentDescription = "Remove", modifier = Modifier.size(18.dp))
+                                            Icon(Icons.Rounded.Close, contentDescription = "移除", modifier = Modifier.size(18.dp))
                                         }
                                     }
                                 }
@@ -153,32 +153,32 @@ fun MergeScreen(
                 }
                 item {
                     SectionHeader(
-                        "Output settings",
-                        "All inputs are re-encoded for seamless joins",
+                        "输出设置",
+                        "所有输入都会重新编码，确保无缝衔接",
                     )
                 }
                 item {
                     Surface(shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surfaceContainerLow) {
                         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Container", style = MaterialTheme.typography.labelLarge)
+                            Text("封装格式", style = MaterialTheme.typography.labelLarge)
                             PillTabs(options = listOf("mp4", "mkv", "mov", "webm"), selected = container, onSelect = { container = it })
                             Spacer(Modifier.height(2.dp))
-                            Text("Canvas", style = MaterialTheme.typography.labelLarge)
+                            Text("画布", style = MaterialTheme.typography.labelLarge)
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 resolutionPairs.forEach { (label, _) ->
                                     FilterChip(selected = resolution == label, onClick = { resolution = label }, label = { Text(label) })
                                 }
                             }
-                            Text("Frame rate", style = MaterialTheme.typography.labelLarge)
+                            Text("帧率", style = MaterialTheme.typography.labelLarge)
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 listOf(24, 25, 30, 60).forEach { value ->
                                     FilterChip(selected = fps == value, onClick = { fps = value }, label = { Text("$value fps") })
                                 }
                             }
                             Spacer(Modifier.height(2.dp))
-                            InfoRow("Resolution", "${width}×${height}")
-                            InfoRow("Pipelines", if (allAudio) "Audio concat (AAC)" else "Video concat + stereo AAC")
-                            InfoRow("Parts", selected.size.toString())
+                            InfoRow("分辨率", "${width}×${height}")
+                            InfoRow("处理管线", if (allAudio) "音频拼接（AAC）" else "视频拼接 + 立体声 AAC")
+                            InfoRow("片段数", selected.size.toString())
                         }
                     }
                 }
@@ -196,16 +196,16 @@ fun MergeScreen(
                             )
                             Spacer(Modifier.width(10.dp))
                             Text(
-                                if (allAudio) "Audio-only sources detected. A single audio file will be produced."
-                                else if (hasImages) "Images become still segments. Missing audio becomes silence."
-                                else "Every file is scaled, padded, retimed and joined in one FFmpeg pass.",
+                                if (allAudio) "检测到纯音频源，将输出一个音频文件。"
+                                else if (hasImages) "图片会变成静帧片段，缺失音频会自动补静音。"
+                                else "所有文件会在一次 FFmpeg 处理中完成缩放、补边、重定时与拼接。",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (allAudio) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onPrimaryContainer,
                             )
                         }
                     }
                 }
-                item { SectionHeader("Add to the timeline", "Tap in the order you want them to play") }
+                item { SectionHeader("加入时间线", "按播放顺序点击添加") }
                 items(media, key = { it.id }) { item ->
                     val index = order.indexOf(item.id)
                     MediaRow(
@@ -231,11 +231,11 @@ fun MergeScreen(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        if (selected.isEmpty()) "Select two or more parts" else "${selected.size} parts · ${formatClock(totalDuration)}",
+                        if (selected.isEmpty()) "至少选择两个片段" else "${selected.size} 个片段 · ${formatClock(totalDuration)}",
                         style = MaterialTheme.typography.titleSmall,
                     )
                     Text(
-                        if (allAudio) "Audio · ${container.uppercase()}" else "${resolution} · ${fps} fps · ${container.uppercase()}",
+                        if (allAudio) "音频 · ${container.uppercase()}" else "${resolution} · ${fps} fps · ${container.uppercase()}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -250,7 +250,7 @@ fun MergeScreen(
                 ) {
                     Icon(Icons.Rounded.CallMerge, contentDescription = null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Merge")
+                    Text("合并")
                 }
             }
         }

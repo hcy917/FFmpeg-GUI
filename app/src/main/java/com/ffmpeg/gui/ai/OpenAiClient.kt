@@ -101,7 +101,7 @@ class OpenAiClient {
         tools: List<ToolSpec>,
     ): AiCompletion = withContext(Dispatchers.IO) {
         val base = settings.baseUrl.trim().trimEnd('/')
-        if (base.isBlank()) throw IOException("Add an AI base URL in Settings")
+        if (base.isBlank()) throw IOException("请先在设置中填写 AI 接口地址")
         val endpoint = when {
             base.endsWith("/chat/completions") -> base
             base.endsWith("/v1") -> "$base/chat/completions"
@@ -128,12 +128,12 @@ class OpenAiClient {
                 val message = runCatching {
                     json.decodeFromString<ChatResponse>(text).error?.message
                 }.getOrNull()
-                throw IOException("AI request failed (${response.code}): ${message ?: text.take(600)}")
+                throw IOException("AI 请求失败（${response.code}）：${message ?: text.take(600)}")
             }
             val parsed = runCatching { json.decodeFromString<ChatResponse>(text) }
-                .getOrElse { throw IOException("Could not parse AI response: ${text.take(500)}") }
-            parsed.error?.let { throw IOException("AI error: ${it.message}") }
-            val choice = parsed.choices.firstOrNull() ?: throw IOException("AI returned no choices")
+                .getOrElse { throw IOException("无法解析 AI 响应：${text.take(500)}") }
+            parsed.error?.let { throw IOException("AI 错误：${it.message}") }
+            val choice = parsed.choices.firstOrNull() ?: throw IOException("AI 未返回任何回复")
             AiCompletion(
                 content = choice.message?.content ?: "",
                 toolCalls = choice.message?.toolCalls ?: emptyList(),
