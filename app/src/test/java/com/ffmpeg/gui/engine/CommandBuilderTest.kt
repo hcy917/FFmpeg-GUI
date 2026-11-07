@@ -10,7 +10,12 @@ import org.junit.Test
 import java.io.File
 
 class CommandBuilderTest {
-    private fun item(name: String, kind: MediaKind = MediaKind.VIDEO, duration: Long = 10_000): MediaItem {
+    private fun item(
+        name: String,
+        kind: MediaKind = MediaKind.VIDEO,
+        duration: Long = 10_000,
+        audioCodec: String = "aac",
+    ): MediaItem {
         return MediaItem(
             id = name,
             name = name,
@@ -18,7 +23,7 @@ class CommandBuilderTest {
             kind = kind,
             durationMs = duration,
             videoCodec = if (kind == MediaKind.VIDEO) "h264" else "",
-            audioCodec = if (kind == MediaKind.AUDIO) "aac" else "aac",
+            audioCodec = audioCodec,
         )
     }
 
@@ -40,9 +45,19 @@ class CommandBuilderTest {
         )
         assertTrue(command.contains("concat=n=2:v=1:a=1"))
         assertTrue(command.contains("scale=1280:720"))
-        assertTrue(command.contains("anullsrc"))
         assertTrue(command.contains("[vout]"))
         assertTrue(command.contains("libx264"))
+    }
+
+    @Test
+    fun mergeInsertsSilenceForSilentVideo() {
+        val command = CommandBuilder.merge(
+            listOf(item("silent.mp4", audioCodec = ""), item("music.mp3", MediaKind.AUDIO)),
+            MergeOptions(width = 1280, height = 720, fps = 30, container = "mp4"),
+            File("/tmp/merged.mp4"),
+        )
+        assertTrue(command.contains("anullsrc"))
+        assertTrue(command.contains("concat=n=2:v=1:a=1"))
     }
 
     @Test
