@@ -17,8 +17,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.FolderOpen
 import androidx.compose.material.icons.rounded.FolderZip
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Refresh
@@ -33,6 +35,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,9 +45,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,6 +60,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ffmpeg.gui.BuildConfig
+import com.ffmpeg.gui.StorageUiState
 import com.ffmpeg.gui.WorkspaceStats
 import com.ffmpeg.gui.data.AiSettings
 import com.ffmpeg.gui.data.AppSettings
@@ -83,10 +89,15 @@ private val providers = listOf(
 fun SettingsScreen(
     settings: AppSettings,
     stats: WorkspaceStats,
+    storageState: StorageUiState,
     ffmpegVersion: String,
     pythonVersion: String,
     onThemeChange: (String) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
+    onStorageModeChange: (String, String) -> Unit,
+    onApplyCustomStorage: (String) -> Unit,
+    onPickStorageFolder: () -> Unit,
+    onRequestStoragePermission: () -> Unit,
     onSaveAi: (AiSettings) -> Unit,
     onDemo: () -> Unit,
     onRefresh: () -> Unit,
@@ -96,6 +107,19 @@ fun SettingsScreen(
     var aiDraft by remember(settings.ai) { mutableStateOf(settings.ai) }
     var keyVisible by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
+    var storageChoice by rememberSaveable { mutableStateOf(storageState.mode) }
+    var storagePath by rememberSaveable(storageState.customPath) {
+        mutableStateOf(storageState.customPath.ifBlank { "/storage/emulated/0/FFmpegGUI" })
+    }
+    val storageModeLabel = when (storageChoice) {
+        "EXTERNAL" -> "外部"
+        "CUSTOM" -> "自定义"
+        else -> "内部"
+    }
+    LaunchedEffect(storageState.mode) { storageChoice = storageState.mode }
+    LaunchedEffect(storageState.customPath) {
+        if (storageState.customPath.isNotBlank()) storagePath = storageState.customPath
+    }
 
     Column(
         Modifier
@@ -144,6 +168,102 @@ fun SettingsScreen(
                 }
                 Switch(checked = settings.dynamicColor, onCheckedChange = onDynamicColorChange)
             }
+        }
+
+        ControlCard(
+            title = "存储位置",
+            subtitle = "工作区、导入文件和生成文件保存的位置",
+        ) {
+            PillTabs(
+                options = listOf("内部", "外部", "自定义"),
+                selected = storageModeLabel,
+                onSelect = { label ->
+                    when (label) {
+                        "内部" -> {
+                            storageChoice = "INTERNAL"
+                            onStorageModeChange("INTERNAL", "")
+                        }
+                        "外部" -> {
+                            storageChoice = "EXTERNAL"
+                            onStorageModeChange("EXTERNAL", "")
+                        }
+                        else -> storageChoice = "CUSTOM"
+                    }
+                },
+            )
+            if (storageState.migrating) {
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+            }
+            Spacer(Modifier.height(10.dp))
+            Text("当前工作区", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    storageState.currentPath,
+                    modifier = Modifier.padding(10.dp),
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace,
+                )
+            }
+            if (storageModeLabel == "自定义") {
+                Spacer(Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = storagePath,
+                    onValueChange = { storagePath = it },
+                    label = { Text("自定义目录路径") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = onPickStorageFolder, shape = RoundedCornerShape(14.dp)) {
+                        Icon(Icons.Rounded.FolderOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp)); Text("选择文件夹")
+                    }
+                    Button(
+                        onClick = { onApplyCustomStorage(storagePath) },
+                        enabled = !storageState.migrating,
+                        shape = RoundedCornerShape(14.dp),
+                    ) {
+                        Text("应用目录")
+                    }
+                }
+                if (!storageState.permissionGranted) {
+                    Spacer(Modifier.height(10.dp))
+                    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.tertiaryContainer) {
+                        Column(Modifier.padding(12.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Rounded.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onTertiaryContainer, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    "Android 11+ 写入自定义公共目录需要“所有文件访问权限”。",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                )
+                            }
+                            TextButton(onClick = onRequestStoragePermission) { Text("授予存储权限") }
+                        }
+                    }
+                }
+            }
+            if (storageState.message.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    storageState.message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (storageState.message.contains("失败") || storageState.message.contains("需要")) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "切换时会复制当前工作区文件到新目录，旧目录保留为备份。建议在任务完成后操作。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
 
         ControlCard(

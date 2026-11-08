@@ -1,9 +1,14 @@
 package com.ffmpeg.gui.ui
 
+import android.Manifest
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.Settings as AndroidSettings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -119,6 +124,7 @@ fun FFmpegGuiRoot(viewModel: MainViewModel) {
     val pythonState by viewModel.pythonState.collectAsStateWithLifecycle()
     val pythonLibraryState by viewModel.pythonLibraryState.collectAsStateWithLifecycle()
     val stats by viewModel.stats.collectAsStateWithLifecycle()
+    val storageState by viewModel.storageState.collectAsStateWithLifecycle()
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val aiBusy by viewModel.aiBusy.collectAsStateWithLifecycle()
 
@@ -136,11 +142,34 @@ fun FFmpegGuiRoot(viewModel: MainViewModel) {
     val libraryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) viewModel.installPythonLibrary(uri)
     }
+    val storageFolderLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) viewModel.useStorageTree(uri)
+    }
+    val storagePermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        viewModel.onStoragePermissionResult(granted)
+    }
+    val allFilesLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.onStoragePermissionResult(Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager())
+    }
 
     val onImportFiles: () -> Unit = { importFilesLauncher.launch(arrayOf("*/*")) }
     val onImportFolder: () -> Unit = { importFolderLauncher.launch(null) }
     val onInstallLibrary: () -> Unit = { libraryLauncher.launch(arrayOf("*/*")) }
     val onOpenSettings: () -> Unit = { screenName = AppScreen.Settings.name }
+    val onPickStorageFolder: () -> Unit = { storageFolderLauncher.launch(null) }
+    val onRequestStoragePermission: () -> Unit = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(
+                AndroidSettings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                Uri.parse("package:${context.packageName}"),
+            )
+            runCatching { allFilesLauncher.launch(intent) }.onFailure {
+                runCatching { allFilesLauncher.launch(Intent(AndroidSettings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)) }
+            }
+        } else {
+            storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
+    }
     val runningTask = tasks.firstOrNull { it.status == TaskStatus.RUNNING }
     val queuedCount = tasks.count { it.status == TaskStatus.QUEUED }
 
@@ -338,10 +367,15 @@ fun FFmpegGuiRoot(viewModel: MainViewModel) {
                             AppScreen.Settings -> SettingsScreen(
                                 settings = settings,
                                 stats = stats,
+                                storageState = storageState,
                                 ffmpegVersion = viewModel.ffmpegVersion,
                                 pythonVersion = viewModel.pythonVersion,
                                 onThemeChange = viewModel::setTheme,
                                 onDynamicColorChange = viewModel::setDynamicColor,
+                                onStorageModeChange = viewModel::applyStorageMode,
+                                onApplyCustomStorage = { path -> viewModel.applyStorageMode("CUSTOM", path) },
+                                onPickStorageFolder = onPickStorageFolder,
+                                onRequestStoragePermission = onRequestStoragePermission,
                                 onSaveAi = viewModel::saveAiSettings,
                                 onDemo = viewModel::createDemoMedia,
                                 onRefresh = viewModel::refreshAll,

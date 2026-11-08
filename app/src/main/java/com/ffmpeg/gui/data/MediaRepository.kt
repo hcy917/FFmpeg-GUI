@@ -72,6 +72,17 @@ class MediaRepository(
 
     fun find(id: String): MediaItem? = _items.value.firstOrNull { it.id == id }
 
+    fun rebase(oldRoot: File, newRoot: File) {
+        val oldPrefix = oldRoot.absolutePath.trimEnd('/') + "/"
+        val newPrefix = newRoot.absolutePath.trimEnd('/') + "/"
+        _items.value = _items.value.mapNotNull { item ->
+            val newPath = if (item.path.startsWith(oldPrefix)) newPrefix + item.path.removePrefix(oldPrefix) else item.path
+            val file = File(newPath)
+            if (file.exists()) item.copy(path = newPath) else null
+        }.sortedByDescending { it.addedAt }
+        persist()
+    }
+
     private fun merge(all: List<MediaItem>): List<MediaItem> {
         return all.associateBy { it.path }.values.sortedByDescending { it.addedAt }
     }

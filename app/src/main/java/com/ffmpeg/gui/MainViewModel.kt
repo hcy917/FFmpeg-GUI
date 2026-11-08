@@ -1,7 +1,13 @@
 package com.ffmpeg.gui
 
+import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -17,6 +23,9 @@ import com.ffmpeg.gui.data.MediaRepository
 import com.ffmpeg.gui.data.MergeOptions
 import com.ffmpeg.gui.data.SettingsRepository
 import com.ffmpeg.gui.data.SplitOptions
+import com.ffmpeg.gui.data.StorageMode
+import com.ffmpeg.gui.data.StoragePaths
+import com.ffmpeg.gui.data.StorageSettings
 import com.ffmpeg.gui.data.TaskRecord
 import com.ffmpeg.gui.data.TaskStatus
 import com.ffmpeg.gui.data.Workspace
@@ -48,9 +57,9 @@ import java.util.UUID
 
 class AppContainer(context: Context) {
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    val workspace = Workspace(context)
-    val mediaRepository = MediaRepository(context, workspace)
     val settingsRepository = SettingsRepository(context)
+    val workspace = Workspace(context, settingsRepository.settings.value.storage)
+    val mediaRepository = MediaRepository(context, workspace)
     val engine = FFmpegEngine()
     val taskRunner = TaskRunner(appScope, engine, workspace, mediaRepository)
     val pythonRunner = PythonRunner(context, workspace)
@@ -104,6 +113,15 @@ data class PythonLibraryState(
     val scripts: List<ScriptEntry> = emptyList(),
 )
 
+data class StorageUiState(
+    val currentPath: String = "",
+    val mode: String = StorageMode.INTERNAL.name,
+    val customPath: String = "",
+    val migrating: Boolean = false,
+    val message: String = "",
+    val permissionGranted: Boolean = false,
+)
+
 class MainViewModel(
     application: Application,
     private val container: AppContainer,
@@ -133,6 +151,24 @@ class MainViewModel(
     private val _stats = MutableStateFlow(WorkspaceStats())
     val stats: StateFlow<WorkspaceStats> = _stats.asStateFlow()
 
+    private val storageFallback: Boolean =
+        settingsRepository.settings.value.storage.mode != StorageMode.INTERNAL &&
+            workspace.root.absolutePath != Workspace.rootFor(
+                application,
+                settingsRepository.settings.value.storage,
+            ).absolutePath
+    private val _storageState = MutableStateFlow(
+        StorageUiState(
+            currentPath = workspace.root.absolutePath,
+            mode = if (storageFallback) StorageMode.INTERNAL.name else settingsRepository.settings.value.storage.mode.name,
+            customPath = settingsRepository.settings.value.storage.customPath,
+            permissionGranted = hasStoragePermission(),
+            message = if (storageFallback) "原存储目录不可用，已回退到内部存储" else "",
+        )
+    )
+    val storageState: StateFlow<StorageUiState> = _storageState.asStateFlow()
+    private var pendingStoragePath: String? = null
+
     private val _messages = MutableStateFlow<List<ChatMessage>>(emptyList())
     val messages: StateFlow<List<ChatMessage>> = _messages.asStateFlow()
 
@@ -145,7 +181,7 @@ class MainViewModel(
     val ffmpegVersion: String = runCatching { engine.version() }.getOrDefault("未知")
     val pythonVersion: String = "Python 3.11"
 
-    private val chatFile = File(workspace.root, "chat/history.json")
+    private fun chatFile(): File = File(workspace.root, "chat/history.json")
 
     init {
         loadChat()
@@ -344,6 +380,122 @@ class MainViewModel(
         }
     }
 
+    private fun hasStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            ContextCompat.checkSelfPermission(
+                getApplication(),
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+    fun refreshStoragePermission() {
+        _storageState.value = _storageState.value.copy(permissionGranted = hasStoragePermission())
+    }
+
+    fun onStoragePermissionResult(granted: Boolean) {
+        refreshStoragePermission()
+        if (granted) {
+            pendingStoragePath?.let { path ->
+                applyStorageMode(StorageMode.CUSTOM.name, path)
+            }
+        } else {
+            _events.tryEmit("未授予存储权限，无法使用自定义目录")
+        }
+    }
+
+    fun useStorageTree(uri: Uri) {
+        val path = StoragePaths.treeUriToPath(getApplication(), uri)
+        if (path == null) {
+            _events.tryEmit("无法识别该文件夹，请选择本机存储中的目录")
+            return
+        }
+        _storageState.value = _storageState.value.copy(customPath = path)
+        applyStorageMode(StorageMode.CUSTOM.name, path)
+    }
+
+    fun applyStorageMode(modeName: String, customPath: String = "") {
+        val mode = runCatching { StorageMode.valueOf(modeName) }.getOrDefault(StorageMode.INTERNAL)
+        val path = customPath.trim().ifBlank { _storageState.value.customPath.trim() }
+        if (mode == StorageMode.CUSTOM && path.isBlank()) {
+            _events.tryEmit("请先选择或输入自定义目录")
+            return
+        }
+        if (taskRunner.tasks.value.any { it.status == TaskStatus.RUNNING || it.status == TaskStatus.QUEUED } ||
+            _pythonState.value.running || _importState.value.active || _aiBusy.value
+        ) {
+            _events.tryEmit("请等待当前任务完成后再切换存储目录")
+            return
+        }
+        val storedCustomPath = if (mode == StorageMode.CUSTOM) path else settingsRepository.settings.value.storage.customPath
+        val storage = StorageSettings(mode = mode, customPath = storedCustomPath)
+        val target = Workspace.rootFor(getApplication(), storage)
+        val current = workspace.root
+        if (target.absolutePath == current.absolutePath) {
+            settingsRepository.updateStorage(storage)
+            _storageState.value = _storageState.value.copy(
+                mode = mode.name,
+                customPath = storage.customPath,
+                currentPath = current.absolutePath,
+                message = "存储位置未改变",
+                permissionGranted = hasStoragePermission(),
+            )
+            return
+        }
+        if (mode == StorageMode.CUSTOM &&
+            !StoragePaths.isInsideAppStorage(getApplication(), target.absolutePath) &&
+            !hasStoragePermission()
+        ) {
+            pendingStoragePath = path
+            _storageState.value = _storageState.value.copy(
+                customPath = path,
+                mode = mode.name,
+                message = "需要“所有文件访问权限”才能写入该目录",
+            )
+            _events.tryEmit("请先授予存储权限，然后重试")
+            return
+        }
+        viewModelScope.launch {
+            _storageState.value = _storageState.value.copy(
+                migrating = true,
+                message = "正在迁移到新目录…",
+                mode = mode.name,
+                customPath = storage.customPath,
+            )
+            val oldRoot = workspace.root
+            val result = workspace.switchRoot(target) { message ->
+                _storageState.value = _storageState.value.copy(message = message)
+            }
+            result.onSuccess { old ->
+                mediaRepository.rebase(old, workspace.root)
+                settingsRepository.updateStorage(storage)
+                pendingStoragePath = null
+                _storageState.value = _storageState.value.copy(
+                    currentPath = workspace.root.absolutePath,
+                    mode = mode.name,
+                    customPath = storage.customPath,
+                    migrating = false,
+                    message = "存储位置已切换，旧目录保留为备份",
+                    permissionGranted = hasStoragePermission(),
+                )
+                refreshStats()
+                refreshPython()
+                _events.tryEmit("工作区已切换到 ${workspace.root.absolutePath}")
+            }.onFailure { error ->
+                _storageState.value = _storageState.value.copy(
+                    migrating = false,
+                    mode = settingsRepository.settings.value.storage.mode.name,
+                    currentPath = workspace.root.absolutePath,
+                    customPath = settingsRepository.settings.value.storage.customPath,
+                    message = "切换失败：${error.message}",
+                )
+                _events.tryEmit("无法切换存储目录：${error.message}")
+            }
+        }
+    }
+
     fun refreshStats() {
         viewModelScope.launch {
             val items = mediaRepository.items.value
@@ -506,16 +658,16 @@ class MainViewModel(
 
     private fun loadChat() {
         runCatching {
-            if (chatFile.isFile) {
-                _messages.value = json.decodeFromString<List<ChatMessage>>(chatFile.readText())
+            if (chatFile().isFile) {
+                _messages.value = json.decodeFromString<List<ChatMessage>>(chatFile().readText())
             }
         }
     }
 
     private fun saveChat() {
         runCatching {
-            chatFile.parentFile?.mkdirs()
-            chatFile.writeText(json.encodeToString(_messages.value))
+            chatFile().parentFile?.mkdirs()
+            chatFile().writeText(json.encodeToString(_messages.value))
         }
     }
 

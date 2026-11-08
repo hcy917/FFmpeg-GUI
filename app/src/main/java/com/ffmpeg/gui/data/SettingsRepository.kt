@@ -21,6 +21,8 @@ class SettingsRepository(private val context: Context) {
 
     fun updateAi(ai: AiSettings) = update(_settings.value.copy(ai = ai))
 
+    fun updateStorage(storage: StorageSettings) = update(_settings.value.copy(storage = storage))
+
     fun updateTheme(themeMode: String, dynamicColor: Boolean = _settings.value.dynamicColor) {
         update(_settings.value.copy(themeMode = themeMode, dynamicColor = dynamicColor))
     }

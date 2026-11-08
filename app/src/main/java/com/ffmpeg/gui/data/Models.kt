@@ -132,10 +132,20 @@ data class AiSettings(
 }
 
 @Serializable
+enum class StorageMode { INTERNAL, EXTERNAL, CUSTOM }
+
+@Serializable
+data class StorageSettings(
+    val mode: StorageMode = StorageMode.INTERNAL,
+    val customPath: String = "",
+)
+
+@Serializable
 data class AppSettings(
     val themeMode: String = "system",
     val dynamicColor: Boolean = false,
     val ai: AiSettings = AiSettings(),
+    val storage: StorageSettings = StorageSettings(),
 )
 
 @Serializable
