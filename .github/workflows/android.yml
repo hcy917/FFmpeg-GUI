@@ -131,6 +131,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            artifacts/FFmpeg-GUI-debug.apk
             artifacts/FFmpeg-GUI-release.apk
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
