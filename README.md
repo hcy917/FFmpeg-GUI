@@ -2,68 +2,115 @@
 
 [![Android CI](https://github.com/hcy917/FFmpeg-GUI/actions/workflows/android.yml/badge.svg)](https://github.com/hcy917/FFmpeg-GUI/actions/workflows/android.yml)
 
-一个完全本地运行的 Android 媒体工作室：Kotlin + Jetpack Compose + Material 3 Expressive + FFmpegKit Full-GPL + 内置 Python + AI 智能助手。
+一个以 AI Agent 为核心的 Android 媒体工作台：Kotlin + Jetpack Compose + Material 3 Expressive + FFmpegKit Full-GPL + 内置 Python 3.11。用自然语言描述任务，Agent 会自己查看文件、探测媒体、组合 FFmpeg 命令、编写并运行 Python 脚本，再把结果交给你检查。
 
 ![FFmpeg](app/src/main/res/drawable-nodpi/ffmpeg_logo.png)
 
 ## 功能
 
-- **导入文件与文件夹**：通过 Android 存储访问框架（SAF）选择任意文件或文件夹，自动复制到工作区，FFmpeg、Python 和 AI 都能安全访问。
-- **自定义存储位置**：设置 → 存储位置可以在内部存储、应用外部存储和自定义目录之间切换；切换时自动迁移文件、更新媒体库路径，旧目录保留为备份。
-- **批量转换**：15 个预设，覆盖 H.264/H.265 MP4、MKV、MOV/ProRes、WebM/VP9+Opus、GIF、MP3、M4A、FLAC、WAV、Opus、JPEG、PNG 以及封装直复制。不同来源、不同格式可以统一输出为同一格式。
-- **音视频合并**：混合格式、混合分辨率、纯音频、纯图片都可以。自动统一画布、帧率和 48 kHz 立体声；缺失音轨补静音，图片变成静帧片段，最终通过 FFmpeg concat 滤镜输出。
-- **媒体拆分**：按时长或按段数拆分，输出格式可选 MP4、MKV、WebM、MOV、MP3、M4A、WAV、FLAC，支持重新编码或流复制。
-- **内置 Python 3.11**：使用 Chaquopy 运行。支持新建、编辑、运行 `.py` 脚本，导入纯 Python 的 `.whl`/`.zip` 库，并通过 `ffmpeg_gui` 模块直接调用 FFmpeg 和文件接口。
-- **AI 智能助手**：兼容任何 OpenAI Chat Completions 接口（DeepSeek、OpenAI、OpenRouter、Ollama、自定义）。支持工具调用：列出/读取/写入工作区文件、媒体探测、运行 FFmpeg、执行 Python。
-- **FFmpeg 控制台**：直接输入完整命令，实时任务队列显示进度、日志、取消和输出文件分享。
-- 中文界面，Material 3 Expressive 大字号、弹性动效、响应式导航，FFmpeg 官方 Logo 启动图标。
+- **Agent 对话**：兼容任何 OpenAI Chat Completions 接口。Agent 在工具循环中自主完成任务，最多 24 轮；每次工具调用都会在对话中展示参数和结果，可随时停止。
+- **文件读写**：列出、读取、写入、创建目录、复制、移动、删除文件。工作区内的相对路径直接使用，拥有「所有文件访问权限」后也可以操作任意可访问的存储路径。
+- **FFmpeg 全能力**：媒体探测、能力查询、执行任意 FFmpeg 参数。转换、批量统一格式、音视频合并、按段拆分、抽帧、生成 GIF、提取字幕等都可以由 Agent 组合完成。
+- **Python 批处理**：Agent 可生成、保存、修改和运行 Python 脚本，也可安装纯 Python 的 `.whl` / `.zip` 库。脚本通过 `ffmpeg_gui` 模块直接调用 FFmpeg。
+- **AI 脚本库**：所有由 AI 生成或手动导入的脚本集中保存在 `ai_scripts` 目录，和普通工作区文件分开，不会混在一起。
+- **两种导入方式**：聊天页可导入单个文件或整个文件夹；也支持从系统分享面板把任意文件发送给 App，导入后自动复制到工作区。
+- **中文 Material 3 Expressive 界面**：三栏底部导航（AI / 已保存脚本 / 设置），大字号、弹性动画、动态取色，全中文提示。
+
+## Agent 工作方式
+
+1. 你输入任务，例如「把 inbox 里所有视频转成 720p MP4，输出到 outputs/720p」。
+2. Agent 收到系统提示、工作区快照和工具列表。
+3. 模型选择工具；App 在本地执行，把结果回传给模型。
+4. 模型继续调用工具，直到给出最终答复。
+5. 生成的文件留在工作区，可在「已保存脚本」中复用脚本，或通过文件管理器访问固定目录。
+
+Agent 的工具：
+
+| 工具 | 用途 |
+| --- | --- |
+| `fs_list` / `fs_read` / `fs_write` | 浏览目录、读取文本、写入文本或源码 |
+| `fs_copy` / `fs_move` / `fs_delete` / `fs_mkdir` | 复制、移动、删除、创建目录 |
+| `download_file` | 从 HTTP(S) 下载字体、字幕、测试素材或库文件 |
+| `workspace_info` | 查看工作区路径、权限、媒体库与脚本概况 |
+| `media_library` / `media_probe` | 查看媒体库、读取时长/分辨率/编码信息 |
+| `ffmpeg_run` / `ffmpeg_capabilities` | 执行 FFmpeg、查询可用编码器与封装格式 |
+| `python_save_script` / `python_run` | 保存并执行 Python 脚本 |
+| `python_list` / `python_install_library` | 列出脚本与库、安装纯 Python 库 |
+
+## 快速上手
+
+1. 打开「设置 → AI 模型与接口」，选择预设或填写接口地址、模型名和 API Key。
+2. 点「测试连接」确认可用，再保存。
+3. 在「设置 → 工作区与权限」查看固定工作区路径；如需让 AI 访问工作区之外的文件，点「授予所有文件访问权限」。
+4. 回到「AI」，直接描述任务，或先导入文件/文件夹作为附件。
+5. Agent 生成的 Python 脚本会自动出现在「已保存脚本」，可以编辑、运行、导出或再次交给 AI 修改。
 
 ## 兼容性
 
 - 最低 Android 8.0（API 26）
 - 目标 Android 17（API 37，`targetSdk 37` / `compileSdk 37`）
 - ABI：`arm64-v8a`、`armeabi-v7a`、`x86_64`
-- 界面全中文；代码与命令保持技术原名。
+- 界面全中文；命令、编码器和文件扩展名保持技术原名
+- 内置 FFmpegKit Full-GPL 6.0-2，包含 x264、x265、libvpx、Opus、LAME 等组件
+
+## 存储位置
+
+工作区固定在应用的外部专属目录，无需选择存储位置：
+
+```text
+/storage/emulated/0/Android/data/com.ffmpeg.gui/files/FFmpegGUI/
+├── inbox/        导入的文件与文件夹
+├── outputs/      FFmpeg 与 Python 的输出
+├── ai_scripts/   AI 生成和手动导入的 Python 脚本
+├── media/        其他媒体文件
+└── library/      已安装的 Python 库
+```
+
+调试版使用独立包名 `com.ffmpeg.gui.debug`，对应目录是 `.../com.ffmpeg.gui.debug/files/FFmpegGUI/`，因此正式版和调试版可以同时安装、互不干扰。
+
+Android 11 及以上如需读写上述目录之外的公共文件，请在设置中授予「所有文件访问权限」。Android 8–9 使用传统存储权限。Android 10 受分区存储限制，请通过聊天页的「导入文件/文件夹」用系统选择器添加公共文件；Agent 仍可处理工作区中的全部文件。
 
 ## 下载与安装
 
-前往 [GitHub Releases](https://github.com/hcy917/FFmpeg-GUI/releases) 下载最新 `FFmpeg-GUI-release.apk`。也可以从 Actions 页面的构建产物下载：
+- [正式发布](https://github.com/hcy917/FFmpeg-GUI/releases)：`FFmpeg-GUI-release.apk`，包名 `com.ffmpeg.gui`。
+- [Nightly 预发布](https://github.com/hcy917/FFmpeg-GUI/releases/tag/nightly)：每次 `main` 分支 CI 成功后自动更新，包含 release 与 debug 两个 APK。
+- GitHub Actions 页面也可下载单次构建产物。
 
-- `FFmpeg-GUI-release`：使用仓库签名密钥签名的 release APK
-- `FFmpeg-GUI-debug`：调试 APK
+两个 APK 使用**同一签名密钥**，可以同时安装；debug 包名带 `.debug` 后缀，版本名带 `-debug` 后缀，应用名显示为「FFmpeg GUI Debug」。
 
-APK 约 82 MB，包含 FFmpeg、Python 运行时和三种 ABI 的原生库。
-
-## 自定义存储位置
-
-打开「设置 → 存储位置」：
-
-- **内部存储**：默认位置，`/data/user/0/com.ffmpeg.gui/files/workspace`，卸载应用后删除。
-- **外部存储**：`Android/data/com.ffmpeg.gui/files/FFmpegGUI/workspace`，方便通过 USB 访问，卸载后删除。
-- **自定义目录**：可直接输入路径或通过系统文件夹选择器选择。Android 11 及以上写入公共目录需要「所有文件访问权限」（设置页有一键授权按钮）；Android 8–9 需要存储权限；Android 10 受分区存储限制，建议使用外部存储或应用专属目录。
-
-切换时会复制当前工作区到新目录并同步媒体库路径，旧目录不会自动删除，确认新位置正常后可手动清理旧目录。运行中的 FFmpeg、Python 或导入任务会阻止切换。
+APK 约 80–105 MB，包含 FFmpeg、Python 运行时和三种 ABI 的原生库。
 
 ## 本地构建
 
-环境：JDK 17、Android SDK Platform 37、Build-Tools 37、Gradle 8.13。
+环境：JDK 17、Android SDK Platform 37、Build-Tools 37、Gradle 8.13、Python 3.11（Chaquopy 构建脚本使用）。
 
 ```bash
-./gradlew :app:assembleDebug
+./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
 ```
 
 如果本机 `~/.gradle` 不可写，可以使用项目内 Gradle Home：
 
 ```bash
-mkdir -p .gradle-home
-GRADLE_USER_HOME="$PWD/.gradle-home" gradle :app:assembleDebug
+GRADLE_USER_HOME="$PWD/.gradle-home" gradle :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease
 ```
 
-产物位置：`app/build/outputs/apk/debug/app-debug.apk`。
+产物：
 
-## CI 与签名
+- `app/build/outputs/apk/debug/app-debug.apk`
+- `app/build/outputs/apk/release/app-release.apk`
 
-`.github/workflows/android.yml` 在每次 `main` 推送、PR 和手动触发时运行：单元测试、debug APK、release APK。推送到 `v*` 标签时自动创建 GitHub Release，附带签名 APK 和 SHA-256 校验文件。
+本地没有 release keystore 时，debug 与 release 都会回退到 `app/debug.keystore`，方便自测；CI 注入正式密钥后两者统一使用 release 密钥。
+
+## CI、签名与 Nightly
+
+`.github/workflows/android.yml` 在每次 `main` 推送、PR 和手动触发时运行：
+
+1. 单元测试。
+2. 构建 debug 与 release APK。
+3. 用 `aapt` 验证包名分别为 `com.ffmpeg.gui.debug` 与 `com.ffmpeg.gui`。
+4. 用 `apksigner` 验证两个 APK 的证书 SHA-256 完全一致。
+5. 上传两个 APK 与 `SHA256SUMS.txt`。
+6. `main` 成功构建后，自动更新 `nightly` 标签的预发布版本；推送 `v*` 标签时创建正式 Release。
 
 签名通过 GitHub Actions Secrets 注入，不进入仓库：
 
@@ -71,28 +118,14 @@ GRADLE_USER_HOME="$PWD/.gradle-home" gradle :app:assembleDebug
 | --- | --- |
 | `ANDROID_KEYSTORE_BASE64` | release keystore 的 Base64 |
 | `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 |
-| `ANDROID_KEY_ALIAS` | 密钥别名（`ffmpeg-gui`） |
+| `ANDROID_KEY_ALIAS` | 密钥别名 |
 | `ANDROID_KEY_PASSWORD` | 密钥密码 |
 
-没有 Secrets 时只构建未签名 release，方便 fork 和 PR 验证。
+没有 Secrets 时，工作流仍会构建并使用本地 debug 密钥签名，但不会用于正式发布。
 
-## 架构
+## Python
 
-```
-app/src/main/java/com/ffmpeg/gui/
-├── MainActivity.kt / MainViewModel.kt / FFmpegGuiApp
-├── data/       工作区、媒体库、设置、数据模型
-├── engine/     FFmpeg 引擎、命令构建、预设、任务队列、媒体探测
-├── python/     Chaquopy 运行器与 Kotlin↔Python 桥
-├── ai/         OpenAI 兼容客户端、工具执行器、智能助手循环
-└── ui/         Material 3 Expressive 中文界面
-app/src/main/python/         ffmpeg_gui 辅助模块
-app/src/main/assets/python_examples/  中文示例脚本
-```
-
-所有处理都在本地完成。只有 AI 助手会访问网络，且只访问你配置的接口。API 密钥保存在应用私有偏好中。
-
-## Python 示例
+内置 Python 3.11，可在「已保存脚本」中新建、编辑和运行脚本。示例：
 
 ```python
 import ffmpeg_gui
@@ -102,27 +135,21 @@ print(ffmpeg_gui.probe("inbox/example.mp4"))
 ffmpeg_gui.run_ffmpeg('-y -i "inbox/example.mp4" -c copy "outputs/copy.mkv"')
 ```
 
-## AI 工具
+Agent 生成的脚本默认使用 UTF-8 保存在 `ai_scripts/`。带原生扩展的 Python wheel 暂不支持，只能安装纯 Python 包。
 
-| 工具 | 用途 |
-| --- | --- |
-| `workspace_list` | 列出文件/文件夹 |
-| `workspace_read` | 读取文本/JSON |
-| `workspace_write` | 创建或覆盖文本文件 |
-| `media_library` | 列出媒体库 |
-| `media_probe` | FFprobe 媒体信息 |
-| `ffmpeg_run` | 执行任意 FFmpeg 参数 |
-| `python_run` | 执行工作区 Python 脚本 |
-| `python_list` | 列出脚本与库 |
+## 安全说明
 
-工具在对话中自动执行，工作区是安全边界。生成的文件会在对话结束后自动加入媒体库。
+- 所有媒体处理都在本机完成；只有 AI 对话会访问你配置的接口。
+- API Key 保存在应用私有偏好中，且已关闭 Android 自动备份，避免随备份外泄。
+- Agent 的删除、覆盖操作会真实修改文件。重要文件请先备份，并在对话中明确目标路径。
+- 授予「所有文件访问权限」后，AI 工具可以读写设备上的其他文件。只在信任所配置模型的前提下开启。
 
 ## 已知限制
 
-- 运行时只能安装纯 Python 包；带原生扩展的 wheel 暂不支持。
-- AI 需要兼容 Chat Completions 且支持工具调用的接口，不内置模型。
-- 合并会重新编码所有源文件，不是流复制拼接。
-- 内置 FFmpegKit Full-GPL 6.0-2 是较旧的 4 KB 页对齐构建；绝大多数 Android 8–17 设备可用，但极端 16 KB 页设备可能需要替换为维护版 FFmpeg 8。
+- AI 需要兼容 Chat Completions 且支持工具调用的接口，App 不内置模型。
+- Agent 的上下文与工具结果有截断（单次工具结果约 18 KB），超大目录或超长日志需要分步处理。
+- 合并、转码等长任务会持续占用前台；请保持应用在前台运行。
+- 内置 FFmpegKit Full-GPL 6.0-2 是较旧的 4 KB 页对齐构建；绝大多数 Android 8–17 设备可用，极端 16 KB 页设备可能需要替换为维护版 FFmpeg 8。
 - FFmpeg 名称与 Logo 属于 FFmpeg 项目，仅用于标识。
 
 ## 许可证

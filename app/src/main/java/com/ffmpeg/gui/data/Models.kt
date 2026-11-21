@@ -124,28 +124,32 @@ data class AiSettings(
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT =
-            "你是 FFmpeg GUI 的本地媒体智能助手，在用户的应用工作区内工作。" +
-                "你可以查看全部文件、探测媒体、运行 FFmpeg，并执行 Python 脚本。" +
-                "请始终使用简体中文回答，语气简洁、务实。" +
-                "优先使用工作区内的路径；执行有破坏性的操作前先说明将要做什么；完成后报告准确的输出路径。"
+            "你是 FFmpeg GUI 的媒体智能体，可以直接操作本机文件、FFmpeg 和 Python。" +
+                "你的目标是把用户的自然语言需求完整执行到产出文件，而不是只给建议。" +
+                "请始终使用简体中文，先理解需求，再调用工具，最后报告准确的输入与输出绝对路径。" +
+                "处理多个文件时逐个探测并批量执行；合并时注意音轨和分辨率差异；拆分时允许指定输出格式。" +
+                "执行破坏性操作前先用一句话说明，重要步骤要保留可复现的 FFmpeg 命令。"
     }
 }
-
-@Serializable
-enum class StorageMode { INTERNAL, EXTERNAL, CUSTOM }
-
-@Serializable
-data class StorageSettings(
-    val mode: StorageMode = StorageMode.INTERNAL,
-    val customPath: String = "",
-)
 
 @Serializable
 data class AppSettings(
     val themeMode: String = "system",
     val dynamicColor: Boolean = false,
     val ai: AiSettings = AiSettings(),
-    val storage: StorageSettings = StorageSettings(),
+)
+
+@Serializable
+data class SavedScript(
+    val id: String,
+    val name: String,
+    val relativePath: String,
+    val description: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+    val lastRunAt: Long = 0L,
+    val lastResult: String = "",
+    val generatedByAi: Boolean = true,
 )
 
 @Serializable

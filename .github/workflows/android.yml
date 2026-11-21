@@ -68,7 +68,7 @@ jobs:
             echo "ANDROID_KEYSTORE_PATH=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
             echo "Release signing enabled."
           else
-            echo "No signing secrets present; release APK will be unsigned."
+            echo "No signing secrets present; debug and release will share the local debug key."
           fi
 
       - name: Set up Gradle
@@ -91,6 +91,23 @@ jobs:
           sha256sum artifacts/*.apk > artifacts/SHA256SUMS.txt
           ls -lh artifacts
 
+      - name: Verify package IDs and shared signing key
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          BUILD_TOOLS="$(find "$SDK_ROOT/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
+          APKSIGNER="$BUILD_TOOLS/apksigner"
+          AAPT="$BUILD_TOOLS/aapt"
+          "$AAPT" dump badging artifacts/FFmpeg-GUI-debug.apk | grep "^package: name='com.ffmpeg.gui.debug'"
+          "$AAPT" dump badging artifacts/FFmpeg-GUI-release.apk | grep "^package: name='com.ffmpeg.gui'"
+          "$APKSIGNER" verify --print-certs artifacts/FFmpeg-GUI-debug.apk > debug-certs.txt
+          "$APKSIGNER" verify --print-certs artifacts/FFmpeg-GUI-release.apk > release-certs.txt
+          DEBUG_CERT="$(grep 'SHA-256 digest' debug-certs.txt | head -1)"
+          RELEASE_CERT="$(grep 'SHA-256 digest' release-certs.txt | head -1)"
+          cat debug-certs.txt release-certs.txt
+          test -n "$DEBUG_CERT"
+          test "$DEBUG_CERT" = "$RELEASE_CERT"
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -109,7 +126,7 @@ jobs:
             artifacts/SHA256SUMS.txt
           if-no-files-found: error
 
-      - name: Publish GitHub release
+      - name: Publish versioned GitHub release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
@@ -118,3 +135,59 @@ jobs:
             artifacts/SHA256SUMS.txt
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+  nightly:
+    name: Publish Nightly prerelease
+    needs: build
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: FFmpeg-GUI-debug
+          path: nightly/debug
+
+      - name: Download release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: FFmpeg-GUI-release
+          path: nightly/release
+
+      - name: Prepare Nightly assets
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp nightly/debug/FFmpeg-GUI-debug.apk dist/
+          cp nightly/release/FFmpeg-GUI-release.apk dist/
+          cd dist
+          sha256sum *.apk > SHA256SUMS.txt
+          ls -lh
+
+      - name: Publish Nightly prerelease
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          target_commitish: ${{ github.sha }}
+          name: Nightly Build
+          prerelease: true
+          make_latest: "false"
+          fail_on_unmatched_files: true
+          body: |
+            FFmpeg GUI 自动 Nightly 构建（预发布）。
+
+            - 提交：`${{ github.sha }}`
+            - 分支：`${{ github.ref_name }}`
+            - 工作流运行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+            `FFmpeg-GUI-release.apk` 为发行包名 `com.ffmpeg.gui`；
+            `FFmpeg-GUI-debug.apk` 为调试包名 `com.ffmpeg.gui.debug`，可同时安装。
+            两个 APK 使用同一签名密钥，校验值见 `SHA256SUMS.txt`。
+          files: |
+            dist/FFmpeg-GUI-debug.apk
+            dist/FFmpeg-GUI-release.apk
+            dist/SHA256SUMS.txt

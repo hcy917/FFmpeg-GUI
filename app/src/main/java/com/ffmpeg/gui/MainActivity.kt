@@ -30,7 +30,9 @@ class MainActivity : ComponentActivity() {
                 FFmpegGuiRoot(viewModel)
             }
         }
-        importFromIntent(intent)
+        if (savedInstanceState == null) {
+            importFromIntent(intent)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

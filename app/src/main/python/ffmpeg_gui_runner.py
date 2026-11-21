@@ -4,6 +4,7 @@ Kotlin calls run_file(script_path, args, libs_dir, writer). The script is
 executed with __name__ == "__main__" and a main(argv) function is invoked
 when present. stdout/stderr are forwarded to the app's task log.
 """
+import inspect
 import os
 import shlex
 import sys
@@ -11,6 +12,7 @@ import traceback
 
 
 def run_file(path, args="", libs_dir="", writer=None):
+    saved_stdout, saved_stderr = sys.stdout, sys.stderr
     if writer is not None:
         sys.stdout = writer
         sys.stderr = writer
@@ -33,7 +35,15 @@ def run_file(path, args="", libs_dir="", writer=None):
         exec(code, globals_dict)
         main_fn = globals_dict.get("main")
         if callable(main_fn):
-            result = main_fn(argv)
+            try:
+                params = inspect.signature(main_fn).parameters
+                accepts_args = any(
+                    p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.VAR_POSITIONAL)
+                    for p in params.values()
+                )
+            except (TypeError, ValueError):
+                accepts_args = True
+            result = main_fn(argv) if accepts_args else main_fn()
             if result is not None:
                 print(result)
             return result
@@ -43,3 +53,7 @@ def run_file(path, args="", libs_dir="", writer=None):
     except Exception:
         traceback.print_exc()
         raise
+    finally:
+        if writer is not None:
+            sys.stdout = saved_stdout
+            sys.stderr = saved_stderr

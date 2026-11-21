@@ -11,18 +11,15 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.Locale
 
-class Workspace(
-    private val context: Context,
-    storage: StorageSettings = StorageSettings(),
-) {
-    @Volatile
-    private var rootDir: File = initialRoot(context, storage)
+class Workspace(private val context: Context) {
+    private val rootDir: File = initialRoot(context)
 
     val root: File get() = rootDir
     val inbox: File get() = ensureDir(File(root, "inbox"))
     val outputs: File get() = ensureDir(File(root, "outputs"))
     val pythonDir: File get() = ensureDir(File(root, "python"))
     val libsDir: File get() = ensureDir(File(pythonDir, "libs"))
+    val aiScriptsDir: File get() = ensureDir(File(root, "ai_scripts"))
     val tempDir: File get() = ensureDir(File(context.cacheDir, "work"))
 
     init {
@@ -36,6 +33,7 @@ class Workspace(
         ensureDir(File(root, "python"))
         ensureDir(File(root, "python/libs"))
         ensureDir(File(root, "python/examples"))
+        ensureDir(File(root, "ai_scripts"))
         ensureDir(File(root, "sandbox"))
         ensureDir(File(root, "chat"))
     }
@@ -56,77 +54,25 @@ class Workspace(
         }.getOrDefault(false)
     }
 
-    /**
-     * Switch the whole workspace to another filesystem directory.
-     * Existing files are merged into the new directory; the old directory is kept as a backup.
-     */
-    suspend fun switchRoot(target: File, onProgress: (String) -> Unit = {}): Result<File> = withContext(Dispatchers.IO) {
-        val old = root
-        runCatching {
-            val oldCanonical = old.canonicalFile
-            val newCanonical = target.canonicalFile
-            if (oldCanonical == newCanonical) return@runCatching old
-            if (newCanonical.path.startsWith(oldCanonical.path + File.separator) ||
-                oldCanonical.path.startsWith(newCanonical.path + File.separator)
-            ) {
-                error("新目录不能位于当前工作区内部，也不能包含当前工作区")
-            }
-            if (!isWritableDirectory(newCanonical)) {
-                error("目标目录不可写。请检查存储权限或换一个目录")
-            }
-            onProgress("正在复制工作区文件…")
-            var copied = 0
-            fun copyTree(source: File, destination: File) {
-                if (source.isFile) {
-                    if (!destination.exists()) {
-                        destination.parentFile?.mkdirs()
-                        source.copyTo(destination, overwrite = false)
-                        copied++
-                        if (copied % 25 == 0) onProgress("已复制 $copied 个文件…")
-                    } else if (source.length() != destination.length()) {
-                        val alt = uniqueFile(destination.parentFile ?: destination, destination.name)
-                        source.copyTo(alt, overwrite = false)
-                        copied++
-                    }
-                    return
-                }
-                destination.mkdirs()
-                source.listFiles()?.forEach { child ->
-                    copyTree(child, File(destination, child.name))
-                }
-            }
-            copyTree(old, newCanonical)
-            rootDir = newCanonical
-            ensureLayout()
-            onProgress("已切换并复制 $copied 个文件")
-            old
-        }
-    }
-
     companion object {
         fun internalRoot(context: Context): File = File(context.filesDir, "workspace")
 
+        /** Fixed visible app-specific external directory. No storage picker is required. */
         fun externalRoot(context: Context): File =
-            File(context.getExternalFilesDir(null) ?: File(context.filesDir, "external"), "FFmpegGUI/workspace")
+            File(context.getExternalFilesDir(null) ?: File(context.filesDir, "external"), "FFmpegGUI")
 
-        fun rootFor(context: Context, storage: StorageSettings): File {
-            return when (storage.mode) {
-                StorageMode.INTERNAL -> internalRoot(context)
-                StorageMode.EXTERNAL -> externalRoot(context)
-                StorageMode.CUSTOM -> storage.customPath.trim().takeIf { it.isNotBlank() }?.let { File(it) }
-                    ?: internalRoot(context)
-            }
-        }
-
-        private fun initialRoot(context: Context, storage: StorageSettings): File {
-            val candidate = rootFor(context, storage)
+        private fun initialRoot(context: Context): File {
+            val external = externalRoot(context)
             val fallback = internalRoot(context)
-            return if (candidate == fallback || runCatching {
-                    candidate.mkdirs()
-                    File(candidate, ".write_test").apply { writeText("ok"); delete() }
+            return if (runCatching {
+                    external.mkdirs()
+                    File(external, ".write_test").apply { writeText("ok"); delete() }
                     true
                 }.getOrDefault(false)
-            ) candidate else fallback
+            ) external else {
+                fallback.mkdirs()
+                fallback
+            }
         }
     }
 

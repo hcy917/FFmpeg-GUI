@@ -95,13 +95,24 @@ class FFmpegEngine {
     }
 
     /** Blocking execution used by the Python bridge and AI tools. */
-    fun runBlocking(rawCommand: String, onLog: (String) -> Unit = {}): String {
+    fun runBlocking(rawCommand: String, onLog: (String) -> Unit = {}): String =
+        runBlockingResult(rawCommand, onLog).output
+
+    fun runBlockingResult(rawCommand: String, onLog: (String) -> Unit = {}): FFmpegResult {
+        val start = System.currentTimeMillis()
         FfmpegGate.acquireBlocking()
         return try {
             val session = FFmpegKit.execute(normalize(rawCommand))
             val output = session.allLogsAsString ?: ""
             output.lineSequence().forEach(onLog)
-            output
+            FFmpegResult(
+                success = ReturnCode.isSuccess(session.returnCode),
+                cancelled = ReturnCode.isCancel(session.returnCode),
+                returnCode = session.returnCode?.value ?: -1,
+                output = output,
+                failStackTrace = session.failStackTrace ?: "",
+                elapsedMs = System.currentTimeMillis() - start,
+            )
         } finally {
             FfmpegGate.release()
         }

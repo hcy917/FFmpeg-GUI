@@ -14,8 +14,8 @@ android {
         applicationId = "com.ffmpeg.gui"
         minSdk = 26
         targetSdk = 37
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
@@ -44,6 +44,11 @@ android {
         }
     }
 
+    // Both variants use the same key so a debug build can be installed next to,
+    // and upgraded by, a release build signed with the repository key.
+    val sharedSigning = signingConfigs.findByName("releaseSigning")
+        ?: signingConfigs.getByName("localDebug")
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -52,12 +57,13 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.findByName("releaseSigning")
+            signingConfig = sharedSigning
         }
         debug {
-            applicationIdSuffix = ""
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("localDebug")
+            signingConfig = sharedSigning
         }
     }
 

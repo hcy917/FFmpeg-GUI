@@ -77,10 +77,9 @@ object PythonBridge {
         val eng = engine ?: return "FFmpeg 引擎不可用"
         emit("▶ ffmpeg $args")
         return try {
-            val output = eng.runBlocking(args) { line -> if (line.isNotBlank()) emit(line) }
-            val success = !output.contains("Conversion failed") && !output.contains("Error")
-            emit(if (success) "✓ FFmpeg 运行完成" else "✗ FFmpeg 命令可能失败")
-            output
+            val result = eng.runBlockingResult(args) { line -> if (line.isNotBlank()) emit(line) }
+            emit(if (result.success) "✓ FFmpeg 运行完成" else "✗ FFmpeg 命令失败（返回码 ${result.returnCode}）")
+            result.output
         } catch (t: Throwable) {
             emit("✗ ${t.message}")
             "ERROR: ${t.message}"

@@ -90,9 +90,10 @@ class PythonRunner(
 
     fun scripts(): List<File> {
         copyExampleScripts()
-        return workspace.pythonDir.walkTopDown()
+        return (workspace.pythonDir.walkTopDown() + workspace.aiScriptsDir.walkTopDown())
             .filter { it.isFile && it.extension.lowercase() == "py" }
             .filterNot { it.canonicalPath.startsWith(workspace.libsDir.canonicalPath) }
+            .distinctBy { it.canonicalPath }
             .sortedBy { workspace.relative(it) }
             .toList()
     }
@@ -103,8 +104,8 @@ class PythonRunner(
     }
 
     fun saveScript(name: String, content: String, subFolder: String = ""): File {
-        val safeName = workspace.sanitize(name).let { if (it.endsWith(".py")) it else "$it.py" }
-        val dir = if (subFolder.isBlank()) workspace.pythonDir else File(workspace.pythonDir, subFolder).apply { mkdirs() }
+        val safeName = workspace.sanitize(name).let { if (it.endsWith(".py", true)) it else "$it.py" }
+        val dir = if (subFolder.isBlank()) workspace.aiScriptsDir else File(workspace.aiScriptsDir, subFolder).apply { mkdirs() }
         val file = workspace.uniqueFile(dir, safeName)
         file.writeText(content)
         return file
@@ -123,20 +124,29 @@ class PythonRunner(
             context.contentResolver.openInputStream(uri)?.use { input ->
                 temp.outputStream().use { output -> input.copyTo(output) }
             } ?: error("无法读取所选库文件")
+            val result = installLibraryFile(temp, onProgress)
+            temp.delete()
+            result.getOrThrow()
+        }
+    }
+
+    suspend fun installLibraryFile(source: File, onProgress: (String) -> Unit = {}): Result<String> = withContext(Dispatchers.IO) {
+        runCatching {
+            if (!source.isFile) error("找不到库文件：${source.absolutePath}")
+            val name = source.name
             workspace.libsDir.mkdirs()
             val lower = name.lowercase()
             if (lower.endsWith(".py")) {
                 val target = workspace.uniqueFile(workspace.libsDir, workspace.sanitize(name))
-                temp.copyTo(target, overwrite = true)
+                source.copyTo(target, overwrite = true)
                 onProgress("已添加单文件模块 ${target.name}")
-                temp.delete()
-                return@runCatching target.name
+                return@runCatching "已添加 $name"
             }
             if (!lower.endsWith(".zip") && !lower.endsWith(".whl")) {
                 error("请选择 .whl、.zip 或 .py 库文件")
             }
             var count = 0
-            ZipInputStream(temp.inputStream().buffered()).use { zip ->
+            ZipInputStream(source.inputStream().buffered()).use { zip ->
                 while (true) {
                     val entry = zip.nextEntry ?: break
                     val entryName = entry.name.replace('\\', '/')
@@ -154,7 +164,6 @@ class PythonRunner(
                     if (count % 20 == 0) onProgress("正在解压 $count 个文件…")
                 }
             }
-            temp.delete()
             onProgress("已将 ${count.coerceAtLeast(1)} 个文件安装到 Python 库路径")
             "已安装 $name（$count 个文件）。重新运行脚本即可导入。"
         }
